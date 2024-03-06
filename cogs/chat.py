@@ -178,5 +178,6 @@ class Chat(commands.Cog):
 
 
 
+
 def setup(bot):
     bot.add_cog(Chat(bot))
