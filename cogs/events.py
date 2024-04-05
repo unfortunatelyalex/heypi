@@ -113,18 +113,35 @@ class Events(commands.Cog):
                     async with AsyncSession() as s:
                         response = await s.post(url, headers=headers, data=payload,impersonate="chrome110",timeout=500)
                             # logger_info.info(f"Posted data for user: {user_id}")
-                        if response.status_code in (403, 401, 400):
-                            # await interaction.user.send("Your cookie now gets deleted, since Pi asks you to log in.\n" \
-                            #                             "If you want to continue chatting in this session, your `__Host-session` cookie will now" \
-                            #                             "be displayed to you which you can use to log in into Pi in your browser via cookie" \
-                            #                             "editor extension:\nYour `__Host-session` cookie is: `{}`".format(cookies['__Host-session']))
-                            #logger_error.error(f"User {message.author.id} / {message.author.name}: 403 error detected. Refreshing cookies...")
+                        if response.status_code in (403, 401):
+                            # Log that a 401 error was caught
+                            logger_debug.debug(f"401 error caught. Refreshing cookie for user {user_id}")
+
+                            # Delete the old cookie
                             await db.delete_cookies(user_id)
-                            #logger_error.error(f"Deleted cookies for user {message.author.id}")
-                            cookies = await fetch_and_save_cookies_second_round(context, user_id)
-                            headers["Cookie"] = f"__Host-session={cookies.get('__Host-session', None)}"
-                            #logger_error.error(f"Fetched and saved cookie {cookies} for user {message.author.id}")
-                            response = await s.post(url, headers=headers, data=payload,impersonate="chrome110",timeout=500)
+                            logger_debug.debug(f"Deleted old cookies for user {user_id}")
+
+                            # Fetch and save the new cookie
+                            new_cookie = await fetch_and_save_cookies_second_round(context, user_id)
+                            logger_debug.debug(f"Fetched and saved new cookie for user {user_id}: {new_cookie}")
+                            new_cookie_value = new_cookie['__Host-session']
+
+                            headers = {
+                                'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/115.0',
+                                'Accept-Language': 'en-US,en;q=0.7',
+                                'Referer': 'https://pi.ai/api/chat',
+                                'Content-Type': 'application/json',
+                                'Sec-Fetch-Dest': 'empty',
+                                'Sec-Fetch-Mode': 'cors',
+                                'Sec-Fetch-Site': 'same-origin',
+                                'Connection': 'keep-alive',
+                                'Cookie': f'__Host-session={new_cookie_value}'
+                            }
+
+                            logger_debug.debug(f"Sending request with the headers: {headers}")
+                            # Resend the request with the updated headers
+                            response = await s.post(url, headers=headers, data=payload, impersonate="chrome110", timeout=500)
+                            logger_debug.debug(f"Resent request with new cookie. Status Code: {response.status_code}")
                             
                         elif response.status_code != 200:
                             #logger_error.error(f"Statuscode: {response.status_code} - {response.reason}")

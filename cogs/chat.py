@@ -43,7 +43,7 @@ class Chat(commands.Cog):
         
         
     @nextcord.slash_command(name="chat", description="Talk to Pi!")
-    async def chat(self, interaction: Interaction, text: str = SlashOption(description="The text to send to the AI", required=True)):
+    async def chat(self, interaction: Interaction, text: str = SlashOption(description="The text to send to Pi", required=True)):
         use_proxy = False
         logger_debug.debug(f"Processing chat command for user: {interaction.user.id}")
         url = 'https://pi.ai/api/chat'
@@ -124,21 +124,77 @@ class Chat(commands.Cog):
                         response = await s.post(url, headers=headers, data=payload,impersonate="chrome110",timeout=500)
                             # logger_info.info(f"Posted data for user: {user_id}")
                         if response.status_code == 403:
-                            # await interaction.user.send("Your cookie now gets deleted, since Pi asks you to log in.\n" \
-                            #                             "If you want to continue chatting in this session, your `__Host-session` cookie will now" \
-                            #                             "be displayed to you which you can use to log in into Pi in your browser via cookie" \
-                            #                             "editor extension:\nYour `__Host-session` cookie is: `{}`".format(cookies['__Host-session']))
-                            #logger_error.error(f"User {interaction.user.id} / {interaction.user.name}: 403 error detected. Refreshing cookies...")
+                            # Log that a 401 error was caught
+                            logger_debug.debug(f"403 error caught. Refreshing cookie for user {user_id}")
+
+                            # Delete the old cookie
                             await db.delete_cookies(user_id)
-                            #logger_error.error(f"Deleted cookies for user {interaction.user.id}")
-                            cookies = await fetch_and_save_cookies_second_round(context, user_id)
-                            #logger_error.error(f"Fetched and saved cookie {cookies} for user {interaction.user.id}")
-                            response = await s.post(url, headers=headers, data=payload,impersonate="chrome110",timeout=500)
+                            logger_debug.debug(f"Deleted old cookies for user {user_id}")
+
+                            # Fetch and save the new cookie
+                            new_cookie = await fetch_and_save_cookies_second_round(context, user_id)
+                            logger_debug.debug(f"Fetched and saved new cookie for user {user_id}: {new_cookie}")
+                            new_cookie_value = new_cookie['__Host-session']
+
+                            headers = {
+                                'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/115.0',
+                                'Accept-Language': 'en-US,en;q=0.7',
+                                'Referer': 'https://pi.ai/api/chat',
+                                'Content-Type': 'application/json',
+                                'Sec-Fetch-Dest': 'empty',
+                                'Sec-Fetch-Mode': 'cors',
+                                'Sec-Fetch-Site': 'same-origin',
+                                'Connection': 'keep-alive',
+                                'Cookie': f'__Host-session={new_cookie_value}'
+                            }
+
+                            logger_debug.debug(f"Sending request with the headers: {headers}")
+                            # Resend the request with the updated headers
+                            response = await s.post(url, headers=headers, data=payload, impersonate="chrome110", timeout=500)
+                            logger_debug.debug(f"Resent request with new cookie. Status Code: {response.status_code}")
+                        elif response.status_code == 401:
+                            # Log that a 401 error was caught
+                            logger_debug.debug(f"401 error caught. Refreshing cookie for user {user_id}")
+
+                            # Delete the old cookie
+                            await db.delete_cookies(user_id)
+                            logger_debug.debug(f"Deleted old cookies for user {user_id}")
+
+                            # Fetch and save the new cookie
+                            new_cookie = await fetch_and_save_cookies_second_round(context, user_id)
+                            logger_debug.debug(f"Fetched and saved new cookie for user {user_id}: {new_cookie}")
+                            new_cookie_value = new_cookie['__Host-session']
+
+                            headers = {
+                                'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/115.0',
+                                'Accept-Language': 'en-US,en;q=0.7',
+                                'Referer': 'https://pi.ai/api/chat',
+                                'Content-Type': 'application/json',
+                                'Sec-Fetch-Dest': 'empty',
+                                'Sec-Fetch-Mode': 'cors',
+                                'Sec-Fetch-Site': 'same-origin',
+                                'Connection': 'keep-alive',
+                                'Cookie': f'__Host-session={new_cookie_value}'
+                            }
+
+                            logger_debug.debug(f"Sending request with the headers: {headers}")
+                            # Resend the request with the updated headers
+                            response = await s.post(url, headers=headers, data=payload, impersonate="chrome110", timeout=500)
+                            logger_debug.debug(f"Resent request with new cookie. Status Code: {response.status_code}")
+                            # logger_debug.debug(f"401 caught")
+                            # # await interaction.user.send("Your cookie now gets deleted, since Pi asks you to log in.\n" \
+                            # #                             "If you want to continue chatting in this session, your `__Host-session` cookie will now" \
+                            # #                             "be displayed to you which you can use to log in into Pi in your browser via cookie" \
+                            # #                             "editor extension:\nYour `__Host-session` cookie is: `{}`".format(cookies['__Host-session']))
+                            # #logger_error.error(f"User {interaction.user.id} / {interaction.user.name}: 403 error detected. Refreshing cookies...")
                         elif response.status_code != 200:
                             #logger_error.error(f"Statuscode: {response.status_code} - {response.reason}")
                             # get the channel by id 1129005486973407272
                             channel = bot.get_channel(1129005486973407272)
                             await channel.send(f"<@399668151475765258>\nFrom: <@{interaction.user.id}> Statuscode: {response.status_code} - {response.content}")
+                        
+                        # elif response.status_code == 200:
+                        #     logger_debug.debug(f"Headers: {headers}")
 
                         decoded_data = response.content.decode("utf-8")
                         #logger_info.info(f"Received response with status: {response.status_code} and content: {decoded_data}")
@@ -163,7 +219,7 @@ class Chat(commands.Cog):
                                     await interaction.send(f'Looks like an error occurred. Report this to the dev please: (Beetle)\nPlease join the following Discord Server and submit the error message as a bug report:\nhttps://discord.gg/CUc9PAgUYB\n\n```Error: ' + str(e) + "```", ephemeral=True)
                     try:
                         await interaction.send(accumulated_text)
-                        logger_info.info(f"\n----------------------- CHAT COMMAND --------------------------------\nUser {interaction.user.id} / {interaction.user.name}: {interaction.message}\nPi: {accumulated_text}\n------------------------ CHAT COMMAND -------------------------------")
+                        logger_info.info(f"\n----------------------- CHAT COMMAND --------------------------------\nUser {interaction.user.id} / {interaction.user.name}: {text}\nPi: {accumulated_text}\n------------------------ CHAT COMMAND -------------------------------")
                     except Exception as e:
                         logger_error.error(f"Exception of type {type(e).__name__} occurred: {e}")
                         await interaction.send(f'Looks like an error occurred. Report this to the dev please: (Will Smith)\nPlease join the following Discord Server and submit the error message as a bug report:\nhttps://discord.gg/CUc9PAgUYB\n\n```Error: ' + str(e) + "```")
