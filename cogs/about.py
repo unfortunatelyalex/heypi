@@ -23,7 +23,7 @@ class About(commands.Cog):
         )
         embed.add_field(
             name="Links",
-            value=f"> [Support Server of this bot](https://discord.gg/CUc9PAgUYB) \n> [Official Pi Server](https://discord.com/invite/VavJn8Ff5Y) \n> [Invite me to your server](https://discord.com/oauth2/authorize?client_id=1110266304709021847&permissions=2048&scope=bot%20applications.commands)"
+            value=f"> See </discord:1131843277033836595>"
         )
         embed.set_footer(
             text=f"{embed_footer}",
