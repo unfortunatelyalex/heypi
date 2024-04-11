@@ -60,6 +60,7 @@ class Events(commands.Cog):
                     # Add the user to the database if they haven't received a message yet
                     await add_user_to_database(user_id)
                     try:
+                        logger_info.info(f"{message.author.id} / {message.author.name} got the message!")
                         await message.author.send("You can also chat with HeyPi by using </chat:1131149453101912074>!")
                     except Exception as e:
                         logger_error.error(f"Error: {e}")
