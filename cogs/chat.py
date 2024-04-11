@@ -87,7 +87,8 @@ class Chat(commands.Cog):
                 cookies = await db.load_cookies(user_id)
                 if cookies is None:
                     cookies = await fetch_and_save_cookies(context, user_id)
-                    logger_debug.debug(f"Fetched and saved cookie {cookies} for user {interaction.user.id}")
+                    cookie = await db.load_cookies(user_id)
+                    logger_debug.debug(f"Fetched and saved cookie {cookie} for user {interaction.user.id}")
                 else:
                     logger_debug.debug(f"Using: {cookies}")
 

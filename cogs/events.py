@@ -83,7 +83,8 @@ class Events(commands.Cog):
                     if cookies is None:
                         await message.channel.trigger_typing()
                         cookies = await fetch_and_save_cookies(context, user_id)
-                        logger_debug.debug(f"Fetched and saved cookie {cookies} for user {message.author.id}")
+                        cookie = await db.load_cookies(user_id)
+                        logger_debug.debug(f"Fetched and saved cookie {cookie} for user {message.author.id}")
                     else:
                         await message.channel.trigger_typing()
                         logger_debug.debug(f"Using: {cookies}")
