@@ -158,7 +158,8 @@ intents = nextcord.Intents.default()
 #intents.message_content = True
 
 embed_footer = 'made with 💛 by alexdot but all credits go to Inflection AI'
-bot = commands.Bot(
+bot = commands.AutoShardedBot(
+    shard_count=10,
     command_prefix="pi.",
     owner_id="399668151475765258",
     case_insensitive=True,
