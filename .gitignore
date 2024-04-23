@@ -1,3 +1,14 @@
+# manually added
+*.db
+cogs/admin.py
+CLI/
+util/
+*.png
+*.log*
+.python-version
+.stignore
+.stfolder/
+
 ### Python ###
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -170,11 +181,3 @@ poetry.toml
 # LSP config files
 pyrightconfig.json
 
-# manually added
-*.db
-cogs/admin.py
-CLI/
-util/
-*.png
-*.log*
-.python-version
