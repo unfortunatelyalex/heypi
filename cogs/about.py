@@ -19,11 +19,17 @@ class About(commands.Cog):
         embed.add_field(
             name="About Me",
             value=f"> I'm in `{len(bot.guilds)}` servers!\n> I was written by @alexdot / <@399668151475765258>",
-            inline=False
+            inline=True
         )
         embed.add_field(
-            name="Links",
-            value=f"> See </discord:1131843277033836595>"
+            name="Support the creator!",
+            value=f"> [on Ko-fi](https://ko-fi.com/unfortunatelyalex)",
+            inline=True
+        )
+        embed.add_field(
+            name="Other links",
+            value=f"> See </discord:1131843277033836595>",
+            inline=False
         )
         embed.set_footer(
             text=f"{embed_footer}",

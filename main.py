@@ -5,7 +5,6 @@ import asyncio
 import nextcord
 import aiosqlite
 from dotenv import load_dotenv
-from openai import AsyncOpenAI
 from nextcord.ext import commands
 from nextcord.ext.commands import Cog
 from curl_cffi.requests import AsyncSession
@@ -29,8 +28,10 @@ cogs = [
 # CONFIGURE LOG
 logger_info = logging.getLogger("INFO")
 logger_info.setLevel(logging.INFO)
+
 logger_error = logging.getLogger("ERROR")
 logger_error.setLevel(logging.ERROR)
+
 logger_debug = logging.getLogger("DEBUG")
 logger_debug.setLevel(logging.DEBUG)
 
@@ -152,7 +153,6 @@ async def add_user_to_database(user_id):
     await conn.close()
 
 
-client = AsyncOpenAI(base_url="https://zukijourney.xyzbot.net/v1", api_key=os.getenv("OPENAI_API_KEY"), http_client=httpx.AsyncClient(follow_redirects=True))
 
 intents = nextcord.Intents.default()
 #intents.message_content = True
@@ -181,6 +181,8 @@ async def on_ready():
     print(f"       User-ID = {bot.user.id}")
     print(f"             Version = {nextcord.__version__}")
     print('-------------------------------------------')
+    custom = nextcord.CustomActivity(name="Chat with me!")
+    await bot.change_presence(activity=custom, status=nextcord.Status.online)
     try:
         await initialize_database()
     except Exception as e:
