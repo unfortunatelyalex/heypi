@@ -1,8 +1,14 @@
 import re
 import json
 import random
-from main import *
+import asyncio
+import nextcord
 from util.ua import user_agents
+from nextcord.ext import commands
+from nextcord.ext.commands import Cog
+from curl_cffi.requests import AsyncSession
+from playwright.async_api import async_playwright
+from main import add_user_to_database, bot, check_user_in_database, db, logger_debug, logger_error, logger_info
 
 
 async def fetch_and_save_cookies(context, user_id):

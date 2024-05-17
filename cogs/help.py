@@ -1,4 +1,7 @@
-from main import *
+import nextcord
+from nextcord.ext import commands
+from nextcord import Interaction
+from main import bot, embed_footer
 
 class Help(commands.Cog):
     def __init__(self, bot):

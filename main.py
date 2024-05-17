@@ -1,16 +1,11 @@
 import os
-import httpx
 import logging
 import asyncio
 import nextcord
 import aiosqlite
 from dotenv import load_dotenv
 from nextcord.ext import commands
-from nextcord.ext.commands import Cog
-from curl_cffi.requests import AsyncSession
-from nextcord import Interaction, SlashOption
 from logging.handlers import RotatingFileHandler
-from playwright.async_api import async_playwright
 
 cogs = [
     'cogs.about',
@@ -160,9 +155,7 @@ intents = nextcord.Intents.default()
 embed_footer = 'made with 💛 by alexdot but all credits go to Inflection AI'
 bot = commands.AutoShardedBot(
     shard_count=10,
-    command_prefix="pi.",
     owner_id="399668151475765258",
-    case_insensitive=True,
     intents=intents
     )
 bot.remove_command('help')

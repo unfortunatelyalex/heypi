@@ -1,4 +1,7 @@
-from main import *
+import nextcord
+from nextcord.ext import commands
+from main import db, logger_error
+from nextcord import Interaction, SlashOption
 
 class Cookieman(commands.Cog):
     def __init__(self, bot):

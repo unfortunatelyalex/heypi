@@ -1,4 +1,7 @@
-from main import *
+import nextcord
+from nextcord.ext import commands
+from main import bot, embed_footer
+from nextcord import Interaction
 
 class Discord(commands.Cog):
     def __init__(self, bot):
