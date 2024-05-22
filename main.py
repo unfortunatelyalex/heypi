@@ -24,6 +24,9 @@ cogs = [
 logger_info = logging.getLogger("INFO")
 logger_info.setLevel(logging.INFO)
 
+logger_interactions = logging.getLogger("INTERACTIONS")
+logger_interactions.setLevel(logging.INFO)
+
 logger_error = logging.getLogger("ERROR")
 logger_error.setLevel(logging.ERROR)
 
@@ -37,24 +40,29 @@ logger_debug.handlers.clear()
 
 # Create handlers for info and error logs
 info_handler = RotatingFileHandler('info.log', maxBytes=100000, backupCount=3)
+interactions_handler = RotatingFileHandler('interactions.log', maxBytes=100000, backupCount=3)
 error_handler = RotatingFileHandler('error.log', maxBytes=100000, backupCount=3)
 debug_handler = RotatingFileHandler('debug.log', maxBytes=100000, backupCount=3)
 
 # Set the log level for each handler
 info_handler.setLevel(logging.INFO)
+interactions_handler.setLevel(logging.INFO)
 error_handler.setLevel(logging.ERROR)
 debug_handler.setLevel(logging.DEBUG)
 
 # Create formatters and add them to the handlers
 info_formatter = logging.Formatter('[%(asctime)s] - %(levelname)s - %(message)s', datefmt='%Y-%b-%d %H:%M:%S')
+interactions_formatter = logging.Formatter('[%(asctime)s] - %(levelname)s - %(message)s', datefmt='%Y-%b-%d %H:%M:%S')
 error_formatter = logging.Formatter('[%(asctime)s] - %(levelname)s - %(message)s', datefmt='%Y-%b-%d %H:%M:%S')
 debug_formatter = logging.Formatter('[%(asctime)s] - %(levelname)s - %(message)s', datefmt='%Y-%b-%d %H:%M:%S')
 info_handler.setFormatter(info_formatter)
+interactions_handler.setFormatter(interactions_formatter)
 error_handler.setFormatter(error_formatter)
 debug_handler.setFormatter(debug_formatter)
 
 # Add the handlers to the respective loggers
 logger_info.addHandler(info_handler)
+logger_interactions.addHandler(interactions_handler)
 logger_error.addHandler(error_handler)
 logger_debug.addHandler(debug_handler)
 
@@ -153,8 +161,7 @@ intents = nextcord.Intents.default()
 #intents.message_content = True
 
 embed_footer = 'made with 💛 by alexdot but all credits go to Inflection AI'
-bot = commands.AutoShardedBot(
-    shard_count=10,
+bot = commands.Bot(        #! CHANGE THIS TO "AutoShardedBot" as soon as the bot is in more than 1000 servers
     owner_id="399668151475765258",
     intents=intents
     )
