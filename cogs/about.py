@@ -26,7 +26,7 @@ class About(commands.Cog):
         )
         embed.add_field(
             name="Support the creator!",
-            value=f"> [on Ko-fi](https://ko-fi.com/unfortunatelyalex)\n> [by voting on Top.gg](https://top.gg/bot/1110266304709021847/vote)",
+            value=f"> [on Ko-fi](https://ko-fi.com/unfortunatelyalex)\n> [on Top.gg](https://top.gg/bot/1110266304709021847/vote)\n> [on Discordbotlist.com](https://discord.ly/heypi)",
             inline=True
         )
         embed.add_field(
