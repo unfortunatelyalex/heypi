@@ -50,7 +50,6 @@ class Events(commands.Cog):
     @Cog.listener()
     async def on_message(self, message: nextcord.Message):
         if message.guild is None and not message.author.bot:
-            use_proxy = False
             logger_debug.debug(f"Processing chat command for user: {message.author.id}")
             url = 'https://pi.ai/api/chat'
 
@@ -67,7 +66,7 @@ class Events(commands.Cog):
                     await add_user_to_database(user_id)
                     try:
                         logger_info.info(f"{message.author.id} / {message.author.name} got the message!")
-                        await message.author.send("You can also chat with HeyPi by using </chat:1131149453101912074>!")
+                        await message.author.send("You can also continue the conversation with me by using </chat:1131855410777825321> in any server I'm in. You can of course also stay in here if you want to keep your conversations private.")
                     except Exception as e:
                         logger_error.error(f"Error: {e}")
                         await message.author.send(f"Error: {e}")

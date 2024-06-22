@@ -50,7 +50,6 @@ class Chat(commands.Cog):
         
     @nextcord.slash_command(name="chat", description="Talk to Pi!")
     async def chat(self, interaction: Interaction, text: str = SlashOption(description="The text to send to Pi", required=True)):
-        use_proxy = False
         logger_debug.debug(f"Processing chat command for user: {interaction.user.id}")
         url = 'https://pi.ai/api/chat'
 
@@ -70,7 +69,7 @@ class Chat(commands.Cog):
                 await add_user_to_database(user_id)
                 try:
                     logger_info.info(f"{interaction.user.id} / {interaction.user.name} got the message!")
-                    await interaction.user.send("You can also chat with HeyPi in here without using </chat:1131149453101912074>!")
+                    await interaction.user.send("You can also continue the conversation with me here to keep it private! It's the same conversation just without the hassle of the slash command!")
                 except Exception as e:
                     logger_error.error(f"Error: {e}")
                     await interaction.send(f"Error: {e}")
