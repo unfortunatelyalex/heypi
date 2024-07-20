@@ -8,7 +8,7 @@ from nextcord.ext import commands
 from curl_cffi.requests import AsyncSession
 from nextcord import Interaction, SlashOption
 from playwright.async_api import async_playwright
-from main import db, bot, logger_debug, logger_info, logger_error, check_user_in_database, add_user_to_database
+from main import db, bot, logger_debug, logger_info, logger_error, check_user_in_database, add_user_to_database, is_user_banned
 
 
 async def fetch_and_save_cookies(context, user_id):
@@ -50,6 +50,12 @@ class Chat(commands.Cog):
         
     @nextcord.slash_command(name="chat", description="Talk to Pi!")
     async def chat(self, interaction: Interaction, text: str = SlashOption(description="The text to send to Pi", required=True)):
+        if await is_user_banned(interaction.user.id):
+            await interaction.response.send_message("You are banned from using this command. If you want to appeal your ban, try joining the support discord.", ephemeral=True)
+            return
+
+        #await interaction.send("Maintenance, please try again later or join the Discord to stay up to date!", ephemeral=True)
+
         logger_debug.debug(f"Processing chat command for user: {interaction.user.id}")
         url = 'https://pi.ai/api/chat'
 
@@ -226,7 +232,7 @@ class Chat(commands.Cog):
                                 await interaction.send(f'Looks like an error occurred. Report this to the dev please: (Beetle)\nPlease join the following Discord Server and submit the error message as a bug report:\nhttps://discord.gg/CUc9PAgUYB\n\n```Error: ' + str(e) + "```", ephemeral=True)
                 try:
                     await interaction.send(accumulated_text)
-                    logger_info.info(f"\n----------------------- CHAT COMMAND --------------------------------\nUser {interaction.user.id} / {interaction.user.name}: {text}\nPi: {accumulated_text}\n------------------------ CHAT COMMAND -------------------------------")
+                    logger_info.info(f"\n------------------------------- CHAT COMMAND -------------------------------\nUser {interaction.user.id} / {interaction.user.name}: {text}\nPi: {accumulated_text}\n------------------------------- CHAT COMMAND -------------------------------")
                 except Exception as e:
                     logger_error.error(f"Exception of type {type(e).__name__} occurred: {e}")
                     await interaction.send(f'Looks like an error occurred. Report this to the dev please: (Will Smith)\nPlease join the following Discord Server and submit the error message as a bug report:\nhttps://discord.gg/CUc9PAgUYB\n\n```Error: ' + str(e) + "```")

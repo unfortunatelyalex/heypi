@@ -8,7 +8,7 @@ from nextcord.ext import commands
 from nextcord.ext.commands import Cog
 from curl_cffi.requests import AsyncSession
 from playwright.async_api import async_playwright
-from main import add_user_to_database, bot, check_user_in_database, db, logger_debug, logger_error, logger_info
+from main import add_user_to_database, bot, check_user_in_database, db, logger_debug, logger_error, logger_info, is_user_banned
 
 
 async def fetch_and_save_cookies(context, user_id):
@@ -49,7 +49,13 @@ class Events(commands.Cog):
 
     @Cog.listener()
     async def on_message(self, message: nextcord.Message):
+        if await is_user_banned(message.author.id):
+            await message.author.send("You are banned from using this command.")
+            return
         if message.guild is None and not message.author.bot:
+
+            #await message.author.send("Maintenance, please try again later or join the Discord to stay up to date!")
+
             logger_debug.debug(f"Processing chat command for user: {message.author.id}")
             url = 'https://pi.ai/api/chat'
 
@@ -178,7 +184,7 @@ class Events(commands.Cog):
                                     await message.author.send(f'Looks like an error occurred. Report this to the dev please: (Beetle)\nPlease join the following Discord Server and submit the error message as a bug report:\nhttps://discord.gg/CUc9PAgUYB\n\n```Error: ' + str(e) + "```")
                     try:
                         await message.author.send(accumulated_text)
-                        logger_info.info(f"\n----------------------- MESSAGE COMMAND --------------------------------\nUser {message.author.id} / {message.author.name}: {message.content}\nPi: {accumulated_text}\n------------------------ MESSAGE COMMAND -------------------------------")
+                        logger_info.info(f"\n------------------------------- MESSAGE COMMAND -------------------------------\nUser {message.author.id} / {message.author.name}: {message.content}\nPi: {accumulated_text}\n------------------------------- MESSAGE COMMAND -------------------------------")
                     except Exception as e:
                         logger_error.error(f"Exception of type {type(e).__name__} occurred: {e}")
                         await message.author.send(f'Looks like an error occurred. Report this to the dev please: (Will Smith)\nPlease join the following Discord Server and submit the error message as a bug report:\nhttps://discord.gg/CUc9PAgUYB\n\n```Error: ' + str(e) + "```")

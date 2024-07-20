@@ -133,6 +133,46 @@ class Database:
 
 
 
+async def init_banned_users_db():
+    conn = await aiosqlite.connect('banned_users.db')
+    cursor = await conn.cursor()
+    await cursor.execute('CREATE TABLE IF NOT EXISTS banned_users (user_id TEXT PRIMARY KEY, reason TEXT)')
+    await conn.commit()
+    await conn.close()
+
+async def is_user_banned(user_id):
+    conn = await aiosqlite.connect('banned_users.db')
+    cursor = await conn.cursor()
+    await cursor.execute('SELECT user_id FROM banned_users WHERE user_id=?', (user_id,))
+    result = await cursor.fetchone()
+    await conn.close()
+    return result is not None
+
+async def ban_user(user_id, reason):
+    conn = await aiosqlite.connect('banned_users.db')
+    cursor = await conn.cursor()
+    await cursor.execute('INSERT INTO banned_users (user_id, reason) VALUES (?, ?)', (user_id, reason))
+    await conn.commit()
+    await conn.close()
+
+async def unban_user(user_id):
+    conn = await aiosqlite.connect('banned_users.db')
+    cursor = await conn.cursor()
+    await cursor.execute('DELETE FROM banned_users WHERE user_id=?', (user_id,))
+    await conn.commit()
+    await conn.close()
+
+async def why_is_user_banned(user_id):
+    conn = await aiosqlite.connect('banned_users.db')
+    cursor = await conn.cursor()
+    await cursor.execute('SELECT reason FROM banned_users WHERE user_id=?', (user_id,))
+    result = await cursor.fetchone()
+    await conn.close()
+    return result[0] if result is not None else None
+
+
+
+
 async def initialize_database():
     conn = await aiosqlite.connect('message_history.db')
     cursor = await conn.cursor()
@@ -181,10 +221,12 @@ async def on_ready():
     print(f"       User-ID = {bot.user.id}")
     print(f"             Version = {nextcord.__version__}")
     print('-------------------------------------------')
+    maintenance = nextcord.CustomActivity(name="Under maintenance, please wait!")
     custom = nextcord.CustomActivity(name="Chat with me!")
     await bot.change_presence(activity=custom, status=nextcord.Status.online)
     try:
         await initialize_database()
+        await init_banned_users_db()
     except Exception as e:
         logger_error.error(f"Error: {e}")
         print(f"Error: {e}")
