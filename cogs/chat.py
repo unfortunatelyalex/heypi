@@ -8,7 +8,7 @@ from nextcord.ext import commands
 from curl_cffi.requests import AsyncSession
 from nextcord import Interaction, SlashOption
 from playwright.async_api import async_playwright
-from main import db, bot, logger_debug, logger_info, logger_error, check_user_in_database, add_user_to_database, is_user_banned
+from main import db, bot, logger_debug, logger_info, logger_error, check_user_in_database, add_user_to_database, is_user_banned, why_is_user_banned
 
 
 async def fetch_and_save_cookies(context, user_id):
@@ -51,8 +51,11 @@ class Chat(commands.Cog):
     @nextcord.slash_command(name="chat", description="Talk to Pi!")
     async def chat(self, interaction: Interaction, text: str = SlashOption(description="The text to send to Pi", required=True)):
         if await is_user_banned(interaction.user.id):
-            await interaction.response.send_message("You are banned from using this command. If you want to appeal your ban, try joining the support discord.", ephemeral=True)
+            reason = await why_is_user_banned(interaction.user.id)
+            await interaction.response.send_message(f"You are banned from using this command. If you want to appeal your ban, try joining the support discord.\n\nReason: {reason}", ephemeral=True)
             return
+        else:
+            pass
 
         #await interaction.send("Maintenance, please try again later or join the Discord to stay up to date!", ephemeral=True)
 

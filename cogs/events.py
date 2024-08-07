@@ -8,7 +8,7 @@ from nextcord.ext import commands
 from nextcord.ext.commands import Cog
 from curl_cffi.requests import AsyncSession
 from playwright.async_api import async_playwright
-from main import add_user_to_database, bot, check_user_in_database, db, logger_debug, logger_error, logger_info, is_user_banned, save_channel_id, get_channel_id, delete_channel_id, update_channel_id
+from main import add_user_to_database, bot, check_user_in_database, db, logger_debug, logger_error, logger_info, is_user_banned, why_is_user_banned, save_channel_id, get_channel_id, delete_channel_id, update_channel_id
 
 
 async def fetch_and_save_cookies(context, user_id):
@@ -91,6 +91,14 @@ class Events(commands.Cog):
         
 
         if message.guild is None and not message.author.bot:
+            # check if user is banned
+            if await is_user_banned(message.author.id):
+                reason = await why_is_user_banned(message.author.id)
+                await message.reply(f"You are banned from using this command. If you want to appeal your ban, try joining the support discord.\n\nReason: {reason}")
+                return
+            else:
+                pass
+            
 
             #await message.author.send("Maintenance, please try again later or join the Discord to stay up to date!")
 
@@ -245,7 +253,9 @@ class Events(commands.Cog):
         if await is_user_banned(message.author.id):
             channel_id = await get_channel_id(guild_id)  # Updated to include guild_id
             if channel_id and message.channel.id == int(channel_id):
-                await message.reply("You are banned from using this command.")
+                if (message.reference and message.reference.resolved and message.reference.resolved.author == self.bot.user) or self.bot.user in message.mentions:
+                    reason = await why_is_user_banned(message.author.id)
+                    await message.reply(f"You are banned from using this command. If you want to appeal your ban, try joining the support discord.\n\nReason: {reason}")
                 return
             else:
                 return

@@ -245,7 +245,6 @@ async def add_user_to_database(user_id):
 
 
 intents = nextcord.Intents.default()
-#intents.message_content = True
 
 embed_footer = 'made with 💛 by alexdot but all credits go to Inflection AI'
 bot = commands.Bot(        #! CHANGE THIS TO "AutoShardedBot" as soon as the bot is in more than 1000 servers
