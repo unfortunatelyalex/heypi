@@ -133,6 +133,53 @@ class Database:
 
 
 
+async def initialize_channel_table():
+    conn = await aiosqlite.connect('message_channels.db')
+    cursor = await conn.cursor()
+    await cursor.execute('''CREATE TABLE IF NOT EXISTS message_channels (
+                            id INTEGER PRIMARY KEY,
+                            guild_id TEXT NOT NULL,
+                            channel_id TEXT NOT NULL)''')
+    await conn.commit()
+    await cursor.close()
+    await conn.close()
+
+async def save_channel_id(guild_id, channel_id):
+    conn = await aiosqlite.connect('message_channels.db')
+    cursor = await conn.cursor()
+    await cursor.execute('INSERT INTO message_channels (guild_id, channel_id) VALUES (?, ?)', (guild_id, channel_id,))
+    await conn.commit()
+    await cursor.close()
+    await conn.close()
+
+async def get_channel_id(guild_id):
+    conn = await aiosqlite.connect('message_channels.db')
+    cursor = await conn.cursor()
+    await cursor.execute('SELECT channel_id FROM message_channels WHERE guild_id = ? LIMIT 1', (guild_id,))
+    row = await cursor.fetchone()
+    await cursor.close()
+    await conn.close()
+    return row[0] if row else None
+
+async def update_channel_id(guild_id, channel_id):
+    conn = await aiosqlite.connect('message_channels.db')
+    cursor = await conn.cursor()
+    await cursor.execute('UPDATE message_channels SET channel_id = ? WHERE guild_id = ?', (channel_id, guild_id,))
+    await conn.commit()
+    await cursor.close()
+    await conn.close()
+
+async def delete_channel_id(guild_id):
+    conn = await aiosqlite.connect('message_channels.db')
+    cursor = await conn.cursor()
+    await cursor.execute('DELETE FROM message_channels WHERE guild_id = ?', (guild_id,))
+    await conn.commit()
+    await cursor.close()
+    await conn.close()
+
+
+
+
 async def init_banned_users_db():
     conn = await aiosqlite.connect('banned_users.db')
     cursor = await conn.cursor()
@@ -227,6 +274,7 @@ async def on_ready():
     try:
         await initialize_database()
         await init_banned_users_db()
+        await initialize_channel_table()
     except Exception as e:
         logger_error.error(f"Error: {e}")
         print(f"Error: {e}")

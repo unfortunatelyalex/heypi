@@ -20,6 +20,16 @@ class Help(commands.Cog):
             inline=True
         )
         embed.add_field(
+            name="Setup",
+            value=f"</setup:1264593015629021265>\n> A command to set up or change the bot chat channel.",
+            inline=True
+        )
+        embed.add_field(
+            name="Delsetup",
+            value=f"</delsetup:1264593017134776421>\n> A command to remove the bot chat channel.",
+            inline=True
+        )
+        embed.add_field(
             name="Help",
             value=f"</help:1131149359648604291>\n> This message.",
             inline=True

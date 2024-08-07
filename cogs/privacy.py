@@ -13,7 +13,7 @@ class Privacy(commands.Cog):
         await interaction.send("""
 Privacy Policy for HeyPi Discord Bot
 
-    Last updated: 7th of December, 2023
+    Last updated: 21st of July, 2024
 
     This Privacy Policy explains how the HeyPi Discord Bot ("HeyPi," "we," "us," or "our") may collect, use, and disclose your information, specifically the information sent through messages when interacting with the bot on the Discord platform. We are committed to maintaining the privacy of users and ensuring the security of any information collected.
 
@@ -26,6 +26,7 @@ Privacy Policy for HeyPi Discord Bot
 
     
 - Your User ID, message content and your username on Discord
+  - Your message content may be used for model training by Inflection as stated in [their TOS](https://pi.ai/policy#terms:~:text=Improving%20the%20Services)
 
     Please note that we do not collect any sensitive personal information.
 
