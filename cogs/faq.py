@@ -65,6 +65,11 @@ class FAQ(commands.Cog):
             value="A: Pi is built on a proprietary large language model developed by Inflection AI.",
             inline=False
         )
+        embed.add_field(
+            name="Q: Can HeyPi join a voice channel?",
+            value="A: Unfortunately, Pi is a text-based AI and cannot join voice channels.",
+            inline=False
+        )
         # embed.add_field(
         #     name="Q: Why does Pi say it's \"LLaMA\" when I ask it who it is?",
         #     value="A: For requests that the API deems \"too simple\", stuff like \"hi\" \"hello\" \"what version are you\" \"who are you\", these responses will be handled by an open source model. That OSS model, provided by MetaAI (LLaMA-2), only can answer in english too."
