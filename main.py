@@ -17,6 +17,7 @@ cogs = [
     'cogs.faq',
     'cogs.help',
     'cogs.privacy',
+    'cogs.error_handling'
     ]
 
 
@@ -24,8 +25,8 @@ cogs = [
 logger_info = logging.getLogger("INFO")
 logger_info.setLevel(logging.INFO)
 
-logger_interactions = logging.getLogger("INTERACTIONS")
-logger_interactions.setLevel(logging.INFO)
+logger_github = logging.getLogger("GITHUB")
+logger_github.setLevel(logging.INFO)
 
 logger_error = logging.getLogger("ERROR")
 logger_error.setLevel(logging.ERROR)
@@ -35,18 +36,19 @@ logger_debug.setLevel(logging.DEBUG)
 
 # Clear any existing handlers to avoid duplicates (optional)
 logger_info.handlers.clear()
+logger_github.handlers.clear()
 logger_error.handlers.clear()
 logger_debug.handlers.clear()
 
 # Create handlers for info and error logs
 info_handler = RotatingFileHandler('info.log', maxBytes=100000, backupCount=3)
-interactions_handler = RotatingFileHandler('interactions.log', maxBytes=100000, backupCount=3)
+github_handler = RotatingFileHandler('interactions.log', maxBytes=100000, backupCount=3)
 error_handler = RotatingFileHandler('error.log', maxBytes=100000, backupCount=3)
 debug_handler = RotatingFileHandler('debug.log', maxBytes=100000, backupCount=3)
 
 # Set the log level for each handler
 info_handler.setLevel(logging.INFO)
-interactions_handler.setLevel(logging.INFO)
+github_handler.setLevel(logging.INFO)
 error_handler.setLevel(logging.ERROR)
 debug_handler.setLevel(logging.DEBUG)
 
@@ -56,13 +58,13 @@ interactions_formatter = logging.Formatter('[%(asctime)s] - %(levelname)s - %(me
 error_formatter = logging.Formatter('[%(asctime)s] - %(levelname)s - %(message)s', datefmt='%Y-%b-%d %H:%M:%S')
 debug_formatter = logging.Formatter('[%(asctime)s] - %(levelname)s - %(message)s', datefmt='%Y-%b-%d %H:%M:%S')
 info_handler.setFormatter(info_formatter)
-interactions_handler.setFormatter(interactions_formatter)
+github_handler.setFormatter(interactions_formatter)
 error_handler.setFormatter(error_formatter)
 debug_handler.setFormatter(debug_formatter)
 
 # Add the handlers to the respective loggers
 logger_info.addHandler(info_handler)
-logger_interactions.addHandler(interactions_handler)
+logger_github.addHandler(github_handler)
 logger_error.addHandler(error_handler)
 logger_debug.addHandler(debug_handler)
 

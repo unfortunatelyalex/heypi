@@ -7,6 +7,7 @@ import traceback
 from nextcord import Embed
 from nextcord.ext import commands
 from dotenv import load_dotenv
+from main import bot, logger_github
 
 # Load environment variables from .env file
 load_dotenv()
@@ -57,17 +58,17 @@ class ApplicationCommandError(commands.Cog):
 
             embed = Embed(title='An error occurred', color=0xff0000, url=issue.html_url)
             embed.add_field(name='Error', value=error_message)
-            await interaction.response.send_message(embed=embed, ephemeral=True)
-            print(f"New issue opened on GitHub: {issue.html_url}")
+            #await interaction.response.send_message(embed=embed, ephemeral=True)
+            logger_github.info(f"New issue opened on GitHub: {issue.html_url}")
         except github.GithubException as gh_exc:
-            await interaction.response.send_message(f"GitHub API error: {gh_exc.data['message']}", ephemeral=True)
-            print(f"GitHub API error: {gh_exc.data['message']}")
+            # await interaction.response.send_message(f"GitHub API error: {gh_exc.data['message']}", ephemeral=True)
+            logger_github.error(f"GitHub API error: {gh_exc.data['message']}")
         except ValueError as ve:
-            await interaction.response.send_message(f"Configuration error: {ve}", ephemeral=True)
-            print(f"Configuration error: {ve}")
+            # await interaction.response.send_message(f"Configuration error: {ve}", ephemeral=True)
+            logger_github.error(f"Configuration error: {ve}")
         except Exception as e:
-            await interaction.response.send_message(f"Oops, something happened. Unable to record the error.\n{e}", ephemeral=True)
-            print(f"Unable to open an issue: {e}")
+            # await interaction.response.send_message(f"Oops, something happened. Unable to record the error.\n{e}", ephemeral=True)
+            logger_github.error(f"Unable to open an issue: {e}")
 
 def setup(bot):
     bot.add_cog(ApplicationCommandError(bot))
