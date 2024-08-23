@@ -91,10 +91,16 @@ class Events(commands.Cog):
         if message.author == self.bot.user:
             return
 
-        # Check for attachments or stickers
-        if message.attachments or message.stickers:
-            await message.reply("I can't see or read any attachments or stickers. Please send text messages only.")
-            logger_debug.debug(f"User {message.author.id} tried to send an attachment or sticker.")
+        # Check for attachments
+        if message.attachments:
+            await message.reply("I can't see or read any attachments. Please send text messages only.")
+            logger_debug.debug(f"User {message.author.id} / {message.author.name} tried to send an attachment.")
+            return
+        
+        # Check for stickers
+        if message.stickers:
+            await message.reply("I can't see or read any stickers. Please send text messages only.")
+            logger_debug.debug(f"User {message.author.id} / {message.author.name} tried to send a sticker.")
             return
         
 
