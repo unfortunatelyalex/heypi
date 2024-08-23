@@ -90,18 +90,6 @@ class Events(commands.Cog):
     async def on_message(self, message: nextcord.Message):
         if message.author == self.bot.user:
             return
-
-        # Check for attachments
-        if message.attachments:
-            await message.reply("I can't see or read any attachments. Please send text messages only.")
-            logger_debug.debug(f"User {message.author.id} / {message.author.name} tried to send an attachment.")
-            return
-        
-        # Check for stickers
-        if message.stickers:
-            await message.reply("I can't see or read any stickers. Please send text messages only.")
-            logger_debug.debug(f"User {message.author.id} / {message.author.name} tried to send a sticker.")
-            return
         
 
         if message.guild is None and not message.author.bot:
@@ -114,6 +102,17 @@ class Events(commands.Cog):
                 pass
             
             
+            # Check for attachments
+            if message.attachments:
+                await message.reply("I can't see or read any attachments. Please send text messages only.")
+                logger_debug.debug(f"User {message.author.id} / {message.author.name} tried to send an attachment.")
+                return
+            
+            # Check for stickers
+            if message.stickers:
+                await message.reply("I can't see or read any stickers. Please send text messages only.")
+                logger_debug.debug(f"User {message.author.id} / {message.author.name} tried to send a sticker.")
+                return
             #await message.author.send("Maintenance, please try again later or join the Discord to stay up to date!")
 
             logger_debug.debug(f"Processing message command for user: {message.author.id}")
