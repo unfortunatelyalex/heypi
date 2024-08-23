@@ -9,6 +9,8 @@ from nextcord.ext.commands import Cog
 from curl_cffi.requests import AsyncSession
 from playwright.async_api import async_playwright
 from main import add_user_to_database, bot, check_user_in_database, db, logger_debug, logger_error, logger_info, is_user_banned, why_is_user_banned, save_channel_id, get_channel_id, delete_channel_id, update_channel_id
+import pytz
+from datetime import datetime
 
 
 async def fetch_and_save_cookies(context, user_id):
@@ -99,10 +101,10 @@ class Events(commands.Cog):
             else:
                 pass
             
-
+            
             #await message.author.send("Maintenance, please try again later or join the Discord to stay up to date!")
 
-            logger_debug.debug(f"Processing chat command for user: {message.author.id}")
+            logger_debug.debug(f"Processing message command for user: {message.author.id}")
             url = 'https://pi.ai/api/chat'
 
             user_id = str(message.author.id)
@@ -110,23 +112,17 @@ class Events(commands.Cog):
             
             has_received_message = await check_user_in_database(user_id)
 
-            should_send_message = random.randint(1, 1) == 1
-
-            if should_send_message:
-                if not has_received_message:
-                    # Add the user to the database if they haven't received a message yet
-                    await add_user_to_database(user_id)
-                    try:
-                        logger_info.info(f"{message.author.id} / {message.author.name} got the message!")
-                        await message.author.send("You can also continue the conversation with me by using </chat:1131855410777825321> in any server I'm in. You can of course also stay in here if you want to keep your conversations private.")
-                    except Exception as e:
-                        logger_error.error(f"Error: {e}")
-                        await message.author.send(f"Error: {e}")
-                else:
-                    # logger_info.info("User already in database!")
-                    pass
+            if not has_received_message:
+                # Add the user to the database if they haven't received a message yet
+                await add_user_to_database(user_id)
+                try:
+                    logger_info.info(f"{message.author.id} / {message.author.name} got the message!")
+                    await message.author.send("You can also continue the conversation with me by using </chat:1131149453101912074> in any server I'm in. You can of course also stay in here if you want to keep your conversations private.")
+                except Exception as e:
+                    logger_error.error(f"Error: {e}")
+                    await message.author.send(f"Error: {e}")
             else:
-                # logger_info.info("User will not receive a message.")
+                # logger_info.info("User already in database!")
                 pass
 
             async with async_playwright() as p:
@@ -155,8 +151,8 @@ class Events(commands.Cog):
 
                     url = "https://pi.ai/api/chat"
 
-                    headers = {
-                            'User-Agent':random.choice(user_agents),
+                    init_headers = {
+                            'User-Agent': random.choice(user_agents),
                             'Accept-Language': 'en-US,en;q=0.7',
                             'Referer': 'https://pi.ai/api/chat',
                             'Content-Type': 'application/json',
@@ -167,10 +163,10 @@ class Events(commands.Cog):
                             'Cookie': f'__Host-session={cookie}'
                     }
 
-                    headers["Cookie"] = f"__Host-session={cookie}"
+                    init_headers["Cookie"] = f"__Host-session={cookie}"
 
                     async with AsyncSession() as s:
-                        response = await s.post(url, headers=headers, data=payload,impersonate="chrome110",timeout=500)
+                        response = await s.post(url, headers=init_headers, data=payload,impersonate="chrome110",timeout=500)
                             # logger_info.info(f"Posted data for user: {user_id}")
                         if response.status_code in (403, 401):
                             # Log that a 401 error was caught
@@ -185,8 +181,8 @@ class Events(commands.Cog):
                             logger_debug.debug(f"Fetched and saved new cookie for user {user_id}: {new_cookie}")
                             new_cookie_value = new_cookie['__Host-session']
 
-                            headers = {
-                                'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/115.0',
+                            error_headers = {
+                                'User-Agent': init_headers['User-Agent'],
                                 'Accept-Language': 'en-US,en;q=0.7',
                                 'Referer': 'https://pi.ai/api/chat',
                                 'Content-Type': 'application/json',
@@ -197,16 +193,19 @@ class Events(commands.Cog):
                                 'Cookie': f'__Host-session={new_cookie_value}'
                             }
 
-                            logger_debug.debug(f"Sending request with the headers: {headers}")
+                            logger_debug.debug(f"Sending request with the headers: {error_headers}")
                             # Resend the request with the updated headers
-                            response = await s.post(url, headers=headers, data=payload, impersonate="chrome110", timeout=500)
+                            response = await s.post(url, headers=error_headers, data=payload, impersonate="chrome110", timeout=500)
                             logger_debug.debug(f"Resent request with new cookie. Status Code: {response.status_code}")
                             
                         elif response.status_code != 200:
                             #logger_error.error(f"Statuscode: {response.status_code} - {response.reason}")
                             # get the channel by id 1129005486973407272
                             channel = bot.get_channel(1129005486973407272)
-                            await channel.send(f"<@399668151475765258>\nFrom: <@{message.author.id}> Statuscode: {response.status_code} - {response.content}")
+                            germany_timezone = pytz.timezone('Europe/Berlin')
+                            germany_time = datetime.now(germany_timezone).strftime('%d-%m-%Y %H:%M:%S')
+
+                            await channel.send(f"<@399668151475765258>\n> From: <@{message.author.id}>\n> Statuscode: {response.status_code} - `{response.content}`\n> Timestamp: {germany_time}")
 
                         decoded_data = response.content.decode("utf-8")
                         #logger_info.info(f"Received response with status: {response.status_code} and content: {decoded_data}")
@@ -290,7 +289,7 @@ class Events(commands.Cog):
                         cookie_dict = await db.load_cookies(message.author.id)
                         cookie = cookie_dict.get("__Host-session", None)
 
-                        headers = {
+                        init_headers = {
                             'User-Agent': random.choice(user_agents),
                             'Accept-Language': 'en-US,en;q=0.7',
                             'Referer': 'https://pi.ai/api/chat',
@@ -303,7 +302,7 @@ class Events(commands.Cog):
                         }
 
                         async with AsyncSession() as s:
-                            response = await s.post(url, headers=headers, data=payload, impersonate="chrome110", timeout=500)
+                            response = await s.post(url, headers=init_headers, data=payload, impersonate="chrome110", timeout=500)
                             if response.status_code in (403, 401):
                                 # Log that a 401 error was caught
                                 logger_debug.debug(f"401 error caught. Refreshing cookie for user {user_id}")
@@ -318,7 +317,7 @@ class Events(commands.Cog):
                                 new_cookie_value = new_cookie['__Host-session']
 
                                 headers = {
-                                    'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/115.0',
+                                    'User-Agent': init_headers['User-Agent'],
                                     'Accept-Language': 'en-US,en;q=0.7',
                                     'Referer': 'https://pi.ai/api/chat',
                                     'Content-Type': 'application/json',
@@ -338,7 +337,10 @@ class Events(commands.Cog):
                                 #logger_error.error(f"Statuscode: {response.status_code} - {response.reason}")
                                 # get the channel by id 1129005486973407272
                                 channel = bot.get_channel(1129005486973407272)
-                                await channel.send(f"<@399668151475765258>\nFrom: <@{message.author.id}> Statuscode: {response.status_code} - {response.content}")
+                                germany_timezone = pytz.timezone('Europe/Berlin')
+                                germany_time = datetime.now(germany_timezone).strftime('%d-%m-%Y %H:%M:%S')
+
+                                await channel.send(f"<@399668151475765258>\n> From: <@{message.author.id}>\n> Statuscode: {response.status_code} - `{response.content}`\n> Timestamp: {germany_time}")
 
                             if response.status_code == 200:
                                 decoded_data = response.content.decode("utf-8")

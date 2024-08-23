@@ -31,6 +31,16 @@ class FAQ(commands.Cog):
             inline=False
         )
         embed.add_field(
+            name="Q: Can HeyPi join a voice channel?",
+            value="A: Unfortunately, Pi is a text-based AI and cannot join voice channels.",
+            inline=False
+        )
+        embed.add_field(
+            name="Q: Can HeyPi see images or videos?",
+            value="A: Pi can't see images, videos or other file types you send it. But it can help you with text-based information.",
+            inline=False
+        )
+        embed.add_field(
             name="Q: What's Pi's personality?",
             value="A: Pi is kind, supportive, knowledgeable, creative, fun, curious, and eager to improve.",
             inline=False
@@ -63,11 +73,6 @@ class FAQ(commands.Cog):
         embed.add_field(
             name="Q: What technology does Pi use?",
             value="A: Pi is built on a proprietary large language model developed by Inflection AI.",
-            inline=False
-        )
-        embed.add_field(
-            name="Q: Can HeyPi join a voice channel?",
-            value="A: Unfortunately, Pi is a text-based AI and cannot join voice channels.",
             inline=False
         )
         # embed.add_field(

@@ -1,8 +1,10 @@
+from datetime import datetime
 import re
 import json
 import random
 import asyncio
 import nextcord
+import pytz
 from util.ua import user_agents
 from nextcord.ext import commands
 from curl_cffi.requests import AsyncSession
@@ -70,23 +72,17 @@ class Chat(commands.Cog):
 
         has_received_message = await check_user_in_database(user_id)
 
-        should_send_message = random.randint(1, 1) == 1
-
-        if should_send_message:
-            if not has_received_message:
-                # Add the user to the database if they haven't received a message yet
-                await add_user_to_database(user_id)
-                try:
-                    logger_info.info(f"{interaction.user.id} / {interaction.user.name} got the message!")
-                    await interaction.user.send("You can also continue the conversation with me here to keep it private! It's the same conversation just without the hassle of the slash command!")
-                except Exception as e:
-                    logger_error.error(f"Error: {e}")
-                    await interaction.send(f"Error: {e}")
-            else:
-                # logger_info.info("User already in database!")
-                pass
+        if not has_received_message:
+            # Add the user to the database if they haven't received a message yet
+            await add_user_to_database(user_id)
+            try:
+                logger_info.info(f"{interaction.user.id} / {interaction.user.name} got the message!")
+                await interaction.user.send("You can also continue the conversation with me here to keep it private! It's the same conversation just without the hassle of the slash command!")
+            except Exception as e:
+                logger_error.error(f"Error: {e}")
+                await interaction.send(f"Error: {e}")
         else:
-            # logger_info.info("User will not receive a message.")
+            # logger_info.info("User already in database!")
             pass
 
 
@@ -124,8 +120,8 @@ class Chat(commands.Cog):
 
                 url = "https://pi.ai/api/chat"
 
-                headers = {
-                        'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/115.0',
+                init_headers = {
+                        'User-Agent': random.choice(user_agents),
                         'Accept-Language': 'en-US,en;q=0.7',
                         'Referer': 'https://pi.ai/api/chat',
                         'Content-Type': 'application/json',
@@ -137,9 +133,9 @@ class Chat(commands.Cog):
                 }
 
                 async with AsyncSession() as s:
-                    response = await s.post(url, headers=headers, data=payload,impersonate="chrome110",timeout=500)
+                    response = await s.post(url, headers=init_headers, data=payload,impersonate="chrome110",timeout=500)
                         # logger_info.info(f"Posted data for user: {user_id}")
-                    if response.status_code == 403:
+                    if response.status_code in (403, 401):
                         # Log that a 401 error was caught
                         logger_debug.debug(f"403 error caught. Refreshing cookie for user {user_id}")
 
@@ -152,8 +148,8 @@ class Chat(commands.Cog):
                         logger_debug.debug(f"Fetched and saved new cookie for user {user_id}: {new_cookie}")
                         new_cookie_value = new_cookie['__Host-session']
 
-                        headers = {
-                            'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/115.0',
+                        error_headers = {
+                            'User-Agent': init_headers['User-Agent'],
                             'Accept-Language': 'en-US,en;q=0.7',
                             'Referer': 'https://pi.ai/api/chat',
                             'Content-Type': 'application/json',
@@ -164,50 +160,18 @@ class Chat(commands.Cog):
                             'Cookie': f'__Host-session={new_cookie_value}'
                         }
 
-                        logger_debug.debug(f"Sending request with the headers: {headers}")
+                        logger_debug.debug(f"Sending request with the headers: {error_headers}")
                         # Resend the request with the updated headers
-                        response = await s.post(url, headers=headers, data=payload, impersonate="chrome110", timeout=500)
+                        response = await s.post(url, headers=error_headers, data=payload, impersonate="chrome110", timeout=500)
                         logger_debug.debug(f"Resent request with new cookie. Status Code: {response.status_code}")
-                    elif response.status_code == 401:
-                        # Log that a 401 error was caught
-                        logger_debug.debug(f"401 error caught. Refreshing cookie for user {user_id}")
-
-                        # Delete the old cookie
-                        await db.delete_cookies(user_id)
-                        logger_debug.debug(f"Deleted old cookies for user {user_id}")
-
-                        # Fetch and save the new cookie
-                        new_cookie = await fetch_and_save_cookies_second_round(context, user_id)
-                        logger_debug.debug(f"Fetched and saved new cookie for user {user_id}: {new_cookie}")
-                        new_cookie_value = new_cookie['__Host-session']
-
-                        headers = {
-                            'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/115.0',
-                            'Accept-Language': 'en-US,en;q=0.7',
-                            'Referer': 'https://pi.ai/api/chat',
-                            'Content-Type': 'application/json',
-                            'Sec-Fetch-Dest': 'empty',
-                            'Sec-Fetch-Mode': 'cors',
-                            'Sec-Fetch-Site': 'same-origin',
-                            'Connection': 'keep-alive',
-                            'Cookie': f'__Host-session={new_cookie_value}'
-                        }
-
-                        logger_debug.debug(f"Sending request with the headers: {headers}")
-                        # Resend the request with the updated headers
-                        response = await s.post(url, headers=headers, data=payload, impersonate="chrome110", timeout=500)
-                        logger_debug.debug(f"Resent request with new cookie. Status Code: {response.status_code}")
-                        # logger_debug.debug(f"401 caught")
-                        # # await interaction.user.send("Your cookie now gets deleted, since Pi asks you to log in.\n" \
-                        # #                             "If you want to continue chatting in this session, your `__Host-session` cookie will now" \
-                        # #                             "be displayed to you which you can use to log in into Pi in your browser via cookie" \
-                        # #                             "editor extension:\nYour `__Host-session` cookie is: `{}`".format(cookies['__Host-session']))
-                        # #logger_error.error(f"User {interaction.user.id} / {interaction.user.name}: 403 error detected. Refreshing cookies...")
                     elif response.status_code != 200:
                         #logger_error.error(f"Statuscode: {response.status_code} - {response.reason}")
                         # get the channel by id 1129005486973407272
                         channel = bot.get_channel(1129005486973407272)
-                        await channel.send(f"<@399668151475765258>\nFrom: <@{interaction.user.id}> Statuscode: {response.status_code} - {response.content}")
+                        germany_timezone = pytz.timezone('Europe/Berlin')
+                        germany_time = datetime.now(germany_timezone).strftime('%d-%m-%Y %H:%M:%S')
+
+                        await channel.send(f"<@399668151475765258>\n> From: <@{interaction.user.id}>\n> Statuscode: {response.status_code} - `{response.content}`\n> Timestamp: {germany_time}")
                     
                     # elif response.status_code == 200:
                     #     logger_debug.debug(f"Headers: {headers}")
