@@ -34,10 +34,10 @@ logger_error.handlers.clear()
 logger_debug.handlers.clear()
 
 # Create handlers for info and error logs
-info_handler = TimedRotatingFileHandler('logs/info/info.log', when='midnight', backupCount=7)
-github_handler = TimedRotatingFileHandler('logs/github/github.log', when='midnight', backupCount=7)
-error_handler = TimedRotatingFileHandler('logs/error/error.log', when='midnight', backupCount=7)
-debug_handler = TimedRotatingFileHandler('logs/debug/debug.log', when='midnight', backupCount=7)
+info_handler = TimedRotatingFileHandler('logs/info/info.log', when='midnight', backupCount=14)
+github_handler = TimedRotatingFileHandler('logs/github/github.log', when='midnight', backupCount=14)
+error_handler = TimedRotatingFileHandler('logs/error/error.log', when='midnight', backupCount=14)
+debug_handler = TimedRotatingFileHandler('logs/debug/debug.log', when='midnight', backupCount=14)
 
 # Set the log level for each handler
 info_handler.setLevel(logging.INFO)
