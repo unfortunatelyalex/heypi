@@ -81,6 +81,7 @@ class Chat(commands.Cog):
             except Exception as e:
                 logger_error.error(f"Error: {e}")
                 await interaction.send(f"Error: {e}")
+                raise e
         else:
             # logger_info.info("User already in database!")
             pass
@@ -177,6 +178,9 @@ class Chat(commands.Cog):
                     #     logger_debug.debug(f"Headers: {headers}")
 
                     decoded_data = response.content.decode("utf-8")
+                    decoded_data_log = response.content.decode("utf-8").strip
+                    logger_debug.debug(f"Received response with status: {response.status_code} and content: {decoded_data_log}")
+                    
                     #logger_info.info(f"Received response with status: {response.status_code} and content: {decoded_data}")
 
                     decoded_data = re.sub('\n+', '\n', decoded_data).strip()
@@ -197,16 +201,36 @@ class Chat(commands.Cog):
                             except Exception as e:
                                 logger_error.error(f"Exception of type {type(e).__name__} occurred: {e}")
                                 await interaction.send(f'Looks like an error occurred. Report this to the dev please: (Beetle)\nPlease join the following Discord Server and submit the error message as a bug report:\nhttps://discord.gg/CUc9PAgUYB\n\n```Error: ' + str(e) + "```", ephemeral=True)
+                                raise e
                 try:
-                    await interaction.send(accumulated_text)
+                    # Log the entire accumulated_text before processing
                     logger_info.info(f"\n------------------------------- CHAT COMMAND -------------------------------\nUser {interaction.user.id} / {interaction.user.name}: {text}\nPi: {accumulated_text}\n------------------------------- CHAT COMMAND -------------------------------")
-                except Exception as e:
-                    logger_error.error(f"Exception of type {type(e).__name__} occurred: {e}")
-                    await interaction.send(f'Looks like an error occurred. Report this to the dev please: (Will Smith)\nPlease join the following Discord Server and submit the error message as a bug report:\nhttps://discord.gg/CUc9PAgUYB\n\n```Error: ' + str(e) + "```")
+                
+                    if len(accumulated_text) > 2000:
+                        parts = []
+                        while len(accumulated_text) > 2000:
+                            split_index = accumulated_text[:2000].rfind(' ')
+                            if split_index == -1:
+                                split_index = 2000  # If no space is found, split at 2000 characters
+                            parts.append(accumulated_text[:split_index])
+                            accumulated_text = accumulated_text[split_index:].strip()
+                        parts.append(accumulated_text)  # Add the remaining part
+                
+                        # Send each part
+                        await interaction.send(parts[0])
+                        for part in parts[1:]:
+                            await interaction.followup.send(part)
+                    else:
+                        await interaction.send(accumulated_text)
+                except Exception as f:
+                    logger_error.error(f"Exception of type {type(f).__name__} occurred: {f}")
+                    await interaction.send(f'Looks like an error occurred. Report this to the dev please: (Will Smith)\nPlease join the following Discord Server and submit the error message as a bug report:\nhttps://discord.gg/CUc9PAgUYB\n\n```Error: ' + str(f) + "```")
+                    raise f
 
-            except Exception as e:
-                logger_error.error(f"Exception of type {type(e).__name__} occurred: {e}")
-                await interaction.followup.send(f'Welp, looks like the bot doesn\'t want to. Report this to the dev please: (Skinwalker)\nPlease join the following Discord Server and submit the error message as a bug report:\nhttps://discord.gg/CUc9PAgUYB\n\n```Error: ' + str(e) + "```")
+            except Exception as g:
+                logger_error.error(f"Exception of type {type(g).__name__} occurred: {g}")
+                await interaction.followup.send(f'Welp, looks like the bot doesn\'t want to. Report this to the dev please: (Skinwalker)\nPlease join the following Discord Server and submit the error message as a bug report:\nhttps://discord.gg/CUc9PAgUYB\n\n```Error: ' + str(g) + "```")
+                raise g
 
             finally:
                 await context.close()

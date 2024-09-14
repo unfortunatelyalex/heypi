@@ -3,23 +3,16 @@ import logging
 import asyncio
 import nextcord
 import aiosqlite
+import traceback
 from dotenv import load_dotenv
 from nextcord.ext import commands
-from logging.handlers import RotatingFileHandler
+from logging.handlers import TimedRotatingFileHandler
 
-cogs = [
-    'cogs.about',
-    'cogs.admin',
-    'cogs.chat',
-    'cogs.cookieman',
-    'cogs.discord',
-    'cogs.events',
-    'cogs.faq',
-    'cogs.help',
-    'cogs.privacy',
-    'cogs.error_handling'
-    ]
-
+# Ensure the directories exist
+os.makedirs('logs/info', exist_ok=True)
+os.makedirs('logs/github', exist_ok=True)
+os.makedirs('logs/error', exist_ok=True)
+os.makedirs('logs/debug', exist_ok=True)
 
 # CONFIGURE LOG
 logger_info = logging.getLogger("INFO")
@@ -41,10 +34,10 @@ logger_error.handlers.clear()
 logger_debug.handlers.clear()
 
 # Create handlers for info and error logs
-info_handler = RotatingFileHandler('info.log', maxBytes=100000, backupCount=3)
-github_handler = RotatingFileHandler('interactions.log', maxBytes=100000, backupCount=3)
-error_handler = RotatingFileHandler('error.log', maxBytes=100000, backupCount=3)
-debug_handler = RotatingFileHandler('debug.log', maxBytes=100000, backupCount=3)
+info_handler = TimedRotatingFileHandler('logs/info/info.log', when='midnight', backupCount=7)
+github_handler = TimedRotatingFileHandler('logs/github/github.log', when='midnight', backupCount=7)
+error_handler = TimedRotatingFileHandler('logs/error/error.log', when='midnight', backupCount=7)
+debug_handler = TimedRotatingFileHandler('logs/debug/debug.log', when='midnight', backupCount=7)
 
 # Set the log level for each handler
 info_handler.setLevel(logging.INFO)
@@ -54,11 +47,11 @@ debug_handler.setLevel(logging.DEBUG)
 
 # Create formatters and add them to the handlers
 info_formatter = logging.Formatter('[%(asctime)s] - %(levelname)s - %(message)s', datefmt='%Y-%b-%d %H:%M:%S')
-interactions_formatter = logging.Formatter('[%(asctime)s] - %(levelname)s - %(message)s', datefmt='%Y-%b-%d %H:%M:%S')
+github_formatter = logging.Formatter('[%(asctime)s] - %(levelname)s - %(message)s', datefmt='%Y-%b-%d %H:%M:%S')
 error_formatter = logging.Formatter('[%(asctime)s] - %(levelname)s - %(message)s', datefmt='%Y-%b-%d %H:%M:%S')
 debug_formatter = logging.Formatter('[%(asctime)s] - %(levelname)s - %(message)s', datefmt='%Y-%b-%d %H:%M:%S')
 info_handler.setFormatter(info_formatter)
-github_handler.setFormatter(interactions_formatter)
+github_handler.setFormatter(github_formatter)
 error_handler.setFormatter(error_formatter)
 debug_handler.setFormatter(debug_formatter)
 
@@ -243,6 +236,16 @@ async def add_user_to_database(user_id):
     await cursor.execute('INSERT INTO message_history (user_id) VALUES (?)', (user_id,))
     await conn.commit()
     await conn.close()
+
+
+
+async def get_traceback(exception, additional_context=None):
+    tb = traceback.format_exception(type(exception), exception, exception.__traceback__)
+    traceback_str = "".join(tb).strip()
+    if additional_context:
+        traceback_str += f"\n\nAdditional Context:\n{additional_context}"
+    return traceback_str
+
 
 
 

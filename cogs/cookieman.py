@@ -19,6 +19,7 @@ class Cookieman(commands.Cog):
         except Exception as e:
             logger_error.error(f'{e}')
             await interaction.send('Error:\n{}'.format(e))
+            raise e
 
     @nextcord.slash_command(name="updatecookie", description="Update your cookies", guild_ids=[1089971424367755345])
     async def updatecookies(self, interaction: Interaction, host_session: str = SlashOption(description="Your __Host-session cookie from https://pi.ai/talk", required=True)):
@@ -31,6 +32,7 @@ class Cookieman(commands.Cog):
         except Exception as e:
             logger_error.error(f'{e}')
             await interaction.send('Error:\n{}'.format(e))
+            raise e
 
     @nextcord.slash_command(name="getcookie", description="Get your cookie", guild_ids=[1089971424367755345])
     async def getcookies(self, interaction: Interaction):
@@ -46,6 +48,7 @@ class Cookieman(commands.Cog):
         except Exception as e:
             logger_error.error(f'{e}')
             await interaction.send('Error:\n{}'.format(e))
+            raise e
             
 
             
