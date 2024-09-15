@@ -240,7 +240,7 @@ class Events(commands.Cog):
                                     await message.author.send(f'Looks like an error occurred. Report this to the dev please: (Beetle)\nPlease join the following Discord Server and submit the error message as a bug report:\nhttps://discord.gg/CUc9PAgUYB\n\n```Error: ' + str(e) + "```")
                     try:
                         # Log the entire accumulated_text before processing
-                        logger_info.info(f"\n------------------------------- CHAT COMMAND -------------------------------\nUser {message.author.id} / {message.author.name}: {message.content}\nPi: {accumulated_text}\n------------------------------- CHAT COMMAND -------------------------------")
+                        logger_info.info(f"\n------------------------------- MESSAGE COMMAND -------------------------------\nUser {message.author.id} / {message.author.name}: {message.content}\nPi: {accumulated_text}\n------------------------------- MESSAGE COMMAND -------------------------------")
                     
                         if len(accumulated_text) > 2000:
                             parts = []
@@ -383,7 +383,7 @@ class Events(commands.Cog):
                                             await message.reply(f'Looks like an error occurred. Report this to the dev please: (MC Cheese)\nPlease join the following Discord Server and submit the error message as a bug report:\nhttps://discord.gg/CUc9PAgUYB\n\n```Error: ' + str(e) + "```")
                         try:
                             # Log the entire accumulated_text before processing
-                            logger_info.info(f"\n------------------------------- CHAT COMMAND -------------------------------\nUser {message.author.id} / {message.author.name}: {message.content}\nPi: {accumulated_text}\n------------------------------- CHAT COMMAND -------------------------------")
+                            logger_info.info(f"\n------------------------------- MESSAGE COMMAND -------------------------------\nUser {message.author.id} / {message.author.name}: {message.content}\nPi: {accumulated_text}\n------------------------------- MESSAGE COMMAND -------------------------------")
                         
                             if len(accumulated_text) > 2000:
                                 parts = []
