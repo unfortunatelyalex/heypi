@@ -75,6 +75,9 @@ class Events(commands.Cog):
 
     @nextcord.slash_command(name="delsetup", description="Delete the message channel")
     async def delete_channel(self, i: nextcord.Interaction):
+        if i.guild is None:
+            await i.response.send_message("This command can only be used in a server.", ephemeral=True)
+            return
         # Check if the user is an admin
         if i.user.guild_permissions.administrator:
             guild_id = str(i.guild_id)
@@ -95,8 +98,7 @@ class Events(commands.Cog):
     async def on_message(self, message: nextcord.Message):
         if message.author == self.bot.user:
             return
-        
-
+    
         if message.guild is None and not message.author.bot:
             # check if user is banned
             if await is_user_banned(message.author.id):
@@ -105,29 +107,27 @@ class Events(commands.Cog):
                 return
             else:
                 pass
-            
-            
+    
             # Check for attachments
             if message.attachments:
                 await message.reply("I can't see or read any attachments. Please send text messages only.")
                 logger_debug.debug(f"User {message.author.id} / {message.author.name} tried to send an attachment.")
                 return
-            
+    
             # Check for stickers
             if message.stickers:
                 await message.reply("I can't see or read any stickers. Please send text messages only.")
                 logger_debug.debug(f"User {message.author.id} / {message.author.name} tried to send a sticker.")
                 return
-            #await message.author.send("Maintenance, please try again later or join the Discord to stay up to date!")
-
+    
             logger_debug.debug(f"Processing message command for user: {message.author.id}")
             url = 'https://pi.ai/api/chat'
-
+    
             user_id = str(message.author.id)
             cookies = await db.load_cookies(user_id)
-            
+    
             has_received_message = await check_user_in_database(user_id)
-
+    
             if not has_received_message:
                 # Add the user to the database if they haven't received a message yet
                 await add_user_to_database(user_id)
@@ -138,15 +138,13 @@ class Events(commands.Cog):
                     logger_error.error(f"Error: {e}")
                     await message.author.send(f"Error: {e}")
             else:
-                # logger_info.info("User already in database!")
                 pass
-
+    
             async with async_playwright() as p:
                 browser = await p.chromium.launch(headless=True)
                 context = await browser.new_context(user_agent=random.choice(user_agents),
-                                                    #record_video_dir=f"/www/wwwroot/secbot/videos/{message.author.id}/",
                                                     java_script_enabled=True)
-                
+    
                 try:
                     cookies = await db.load_cookies(user_id)
                     if cookies is None:
@@ -157,46 +155,38 @@ class Events(commands.Cog):
                     else:
                         await message.channel.trigger_typing()
                         logger_debug.debug(f"Using: {cookies}")
-
+    
                     payload = json.dumps({"text": message.content})
-
+    
                     cookie_dict = await db.load_cookies(message.author.id)
-                    #logger_info.info("Cookie dict: ", cookie_dict)
                     cookie = cookie_dict.get("__Host-session", None)
-                    #logger_info.info(f"final cookie: {cookie}")
-
+    
                     url = "https://pi.ai/api/chat"
-
+    
                     init_headers = {
-                            'User-Agent': random.choice(user_agents),
-                            'Accept-Language': 'en-US,en;q=0.7',
-                            'Referer': 'https://pi.ai/api/chat',
-                            'Content-Type': 'application/json',
-                            'Sec-Fetch-Dest': 'empty',
-                            'Sec-Fetch-Mode': 'cors',
-                            'Sec-Fetch-Site': 'same-origin',
-                            'Connection': 'keep-alive',
-                            'Cookie': f'__Host-session={cookie}'
+                        'User-Agent': random.choice(user_agents),
+                        'Accept-Language': 'en-US,en;q=0.7',
+                        'Referer': 'https://pi.ai/api/chat',
+                        'Content-Type': 'application/json',
+                        'Sec-Fetch-Dest': 'empty',
+                        'Sec-Fetch-Mode': 'cors',
+                        'Sec-Fetch-Site': 'same-origin',
+                        'Connection': 'keep-alive',
+                        'Cookie': f'__Host-session={cookie}'
                     }
-
-                    init_headers["Cookie"] = f"__Host-session={cookie}"
-
+    
                     async with AsyncSession() as s:
-                        response = await s.post(url, headers=init_headers, data=payload,impersonate="chrome110",timeout=500)
-                            # logger_info.info(f"Posted data for user: {user_id}")
+                        response = await s.post(url, headers=init_headers, data=payload, impersonate="chrome110", timeout=500)
                         if response.status_code in (403, 401):
-                            # Log that a 401 error was caught
-                            logger_debug.debug(f"401 error caught. Refreshing cookie for user {user_id}")
-
-                            # Delete the old cookie
+                            logger_debug.debug(f"{response.status_code} caught. Refreshing cookie for user {user_id}")
+    
                             await db.delete_cookies(user_id)
                             logger_debug.debug(f"Deleted old cookies for user {user_id}")
-
-                            # Fetch and save the new cookie
+    
                             new_cookie = await fetch_and_save_cookies_second_round(context, user_id)
                             logger_debug.debug(f"Fetched and saved new cookie for user {user_id}: {new_cookie}")
                             new_cookie_value = new_cookie['__Host-session']
-
+    
                             error_headers = {
                                 'User-Agent': init_headers['User-Agent'],
                                 'Accept-Language': 'en-US,en;q=0.7',
@@ -208,66 +198,59 @@ class Events(commands.Cog):
                                 'Connection': 'keep-alive',
                                 'Cookie': f'__Host-session={new_cookie_value}'
                             }
-
+    
                             logger_debug.debug(f"Sending request with the headers: {error_headers}")
-                            # Resend the request with the updated headers
                             response = await s.post(url, headers=error_headers, data=payload, impersonate="chrome110", timeout=500)
                             logger_debug.debug(f"Resent request with new cookie. Status Code: {response.status_code}")
-                            
+    
                         elif response.status_code != 200:
-                            #logger_error.error(f"Statuscode: {response.status_code} - {response.reason}")
                             await channel.send(f"<@399668151475765258>\n> From: <@{message.author.id}>\n> Statuscode: {response.status_code} - `{response.content}`\n> Timestamp: {germany_time}")
-
+    
                         decoded_data = response.content.decode("utf-8")
-                        #logger_info.info(f"Received response with status: {response.status_code} and content: {decoded_data}")
-
                         decoded_data = re.sub('\n+', '\n', decoded_data).strip()
-                        #logger_info.info(f"Decoded data: {decoded_data}")
                         data_strings = decoded_data.split('\n')
                         accumulated_text = ""
-                        # print("data_strings: ",data_strings)
-
+    
                         for data_string in data_strings:
                             if data_string.startswith('data:'):
                                 json_str = data_string[5:].strip()
-                                # print("json_str: ",json_str)
                                 try:
                                     data = json.loads(json_str)
                                     if 'text' in data:
                                         accumulated_text += data['text']
+                                except json.JSONDecodeError as e:
+                                    logger_error.error(f"JSONDecodeError: {e}")
+                                    await message.author.send(f'Looks like an error occurred. Report this to the dev please: (Jason)\nPlease join the following Discord Server and submit the error message as a bug report:\nhttps://discord.gg/CUc9PAgUYB\n\n```Error: ' + str(e) + "```")
                                 except Exception as e:
                                     logger_error.error(f"Exception of type {type(e).__name__} occurred: {e}")
                                     await message.author.send(f'Looks like an error occurred. Report this to the dev please: (Beetle)\nPlease join the following Discord Server and submit the error message as a bug report:\nhttps://discord.gg/CUc9PAgUYB\n\n```Error: ' + str(e) + "```")
-                    try:
-                        # Log the entire accumulated_text before processing
-                        logger_info.info(f"\n------------------------------- MESSAGE COMMAND -------------------------------\nUser {message.author.id} / {message.author.name}: {message.content}\nPi: {accumulated_text}\n------------------------------- MESSAGE COMMAND -------------------------------")
-                    
-                        if len(accumulated_text) > 2000:
-                            parts = []
-                            while len(accumulated_text) > 2000:
-                                split_index = accumulated_text[:2000].rfind(' ')
-                                if split_index == -1:
-                                    split_index = 2000  # If no space is found, split at 2000 characters
-                                parts.append(accumulated_text[:split_index])
-                                accumulated_text = accumulated_text[split_index:].strip()
-                            parts.append(accumulated_text)  # Add the remaining part
-                    
-                            # Send each part
-                            await message.author.send(parts[0])
-                            for part in parts[1:]:
-                                await message.author.send(part)
-                        else:
-                            await message.author.send(accumulated_text)
-                    except Exception as f:
-                        logger_error.error(f"Exception of type {type(f).__name__} occurred: {f}")
-                        await message.author.send(f'Looks like an error occurred. Report this to the dev please: (Will Smith)\nPlease join the following Discord Server and submit the error message as a bug report:\nhttps://discord.gg/CUc9PAgUYB\n\n```Error: ' + str(f) + "```")
-                        raise f
-
-
+    
+                        try:
+                            logger_info.info(f"\n------------------------------- MESSAGE COMMAND -------------------------------\nUser {message.author.id} / {message.author.name}: {message.content}\nPi: {accumulated_text}\n------------------------------- MESSAGE COMMAND -------------------------------")
+    
+                            if len(accumulated_text) > 2000:
+                                parts = []
+                                while len(accumulated_text) > 2000:
+                                    split_index = accumulated_text[:2000].rfind(' ')
+                                    if split_index == -1:
+                                        split_index = 2000
+                                    parts.append(accumulated_text[:split_index])
+                                    accumulated_text = accumulated_text[split_index:].strip()
+                                parts.append(accumulated_text)
+    
+                                await message.author.send(parts[0])
+                                for part in parts[1:]:
+                                    await message.author.send(part)
+                            else:
+                                await message.author.send(accumulated_text)
+                        except Exception as f:
+                            logger_error.error(f"Exception of type {type(f).__name__} occurred: {f}")
+                            await message.author.send(f'Looks like an error occurred. Report this to the dev please: (The juice)\nPlease join the following Discord Server and submit the error message as a bug report:\nhttps://discord.gg/CUc9PAgUYB\n\n```Error: ' + str(f) + "```")
+    
                 except Exception as g:
                     logger_error.error(f"Exception of type {type(g).__name__} occurred: {g}")
                     await message.author.send(f'Welp, looks like the bot doesn\'t want to. Report this to the dev please: (Firefly)\nPlease join the following Discord Server and submit the error message as a bug report:\nhttps://discord.gg/CUc9PAgUYB\n\n```Error: ' + str(g) + "```")
-
+    
                 finally:
                     await context.close()
                     await browser.close()
@@ -334,7 +317,7 @@ class Events(commands.Cog):
                             response = await s.post(url, headers=init_headers, data=payload, impersonate="chrome110", timeout=500)
                             if response.status_code in (403, 401):
                                 # Log that a 401 error was caught
-                                logger_debug.debug(f"401 error caught. Refreshing cookie for user {user_id}")
+                                logger_debug.debug(f"{response.status_code} caught. Refreshing cookie for user {user_id}")
 
                                 # Delete the old cookie
                                 await db.delete_cookies(user_id)
@@ -403,7 +386,7 @@ class Events(commands.Cog):
                                 await message.reply(accumulated_text)
                         except Exception as f:
                             logger_error.error(f"Exception of type {type(f).__name__} occurred: {f}")
-                            await message.reply(f'Looks like an error occurred. Report this to the dev please: (Will Smith)\nPlease join the following Discord Server and submit the error message as a bug report:\nhttps://discord.gg/CUc9PAgUYB\n\n```Error: ' + str(f) + "```")
+                            await message.reply(f'Looks like an error occurred. Report this to the dev please: (Introvert)\nPlease join the following Discord Server and submit the error message as a bug report:\nhttps://discord.gg/CUc9PAgUYB\n\n```Error: ' + str(f) + "```")
                             raise f
                     except Exception as e:
                         logger_error.error(f"Exception of type {type(e).__name__} occurred: {e}")
