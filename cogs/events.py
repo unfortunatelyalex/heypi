@@ -1,16 +1,16 @@
 import re
+import pytz
 import json
 import random
 import asyncio
 import nextcord
+from datetime import datetime
 from util.ua import user_agents
 from nextcord.ext import commands
 from nextcord.ext.commands import Cog
 from curl_cffi.requests import AsyncSession
 from playwright.async_api import async_playwright
 from main import add_user_to_database, bot, check_user_in_database, db, logger_debug, logger_error, logger_info, is_user_banned, why_is_user_banned, save_channel_id, get_channel_id, delete_channel_id, update_channel_id
-import pytz
-from datetime import datetime
 
 
 channel = bot.get_channel(1129005486973407272)
@@ -99,7 +99,12 @@ class Events(commands.Cog):
         if message.author == self.bot.user:
             return
     
+
         if message.guild is None and not message.author.bot:
+            #! Wäre nice so einen "Maintenance" Modus zu haben, den ich einfach in der .env datei oder in main.py aktivieren kann
+            #! und dann wird nur noch der folgende Text gesendet, wenn man versucht die KI features zu benutzen
+            # await message.author.send("Maintenance, please try again later or **join the Discord** (</discord:1131843277033836595>) to stay up to date!")
+            # return
             # check if user is banned
             if await is_user_banned(message.author.id):
                 reason = await why_is_user_banned(message.author.id)
@@ -177,7 +182,7 @@ class Events(commands.Cog):
     
                     async with AsyncSession() as s:
                         response = await s.post(url, headers=init_headers, data=payload, impersonate="chrome110", timeout=500)
-                        if response.status_code in (403, 401):
+                        if response.status_code in (403, 401, 400):
                             logger_debug.debug(f"{response.status_code} caught. Refreshing cookie for user {user_id}")
     
                             await db.delete_cookies(user_id)
@@ -193,7 +198,7 @@ class Events(commands.Cog):
                                 'Referer': 'https://pi.ai/api/chat',
                                 'Content-Type': 'application/json',
                                 'Sec-Fetch-Dest': 'empty',
-                                'Sec-Fetch-Mode': 'cors',
+                                'Sec-Fetch-Mode': 'cors',                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           
                                 'Sec-Fetch-Site': 'same-origin',
                                 'Connection': 'keep-alive',
                                 'Cookie': f'__Host-session={new_cookie_value}'
@@ -315,7 +320,7 @@ class Events(commands.Cog):
 
                         async with AsyncSession() as s:
                             response = await s.post(url, headers=init_headers, data=payload, impersonate="chrome110", timeout=500)
-                            if response.status_code in (403, 401):
+                            if response.status_code in (403, 401, 400):
                                 # Log that a 401 error was caught
                                 logger_debug.debug(f"{response.status_code} caught. Refreshing cookie for user {user_id}")
 

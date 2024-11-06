@@ -1,8 +1,6 @@
 # manually added
 *.db
-cogs/admin.py
 CLI/
-util/
 *.png
 *logs/
 .python-version

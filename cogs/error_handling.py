@@ -130,16 +130,6 @@ class ApplicationCommandError(commands.Cog):
             # await interaction.response.send_message(f"Oops, something happened. Unable to record the error.\n{e}", ephemeral=True)
             logger_github.error(f"Unable to open an issue: {e}")
 
-        # Add additional logging
-        logger_github.debug(f"Error encountered: {error_message}")
-        logger_github.debug(f"Traceback: {traceback_str}")
-        logger_github.debug(f"Command: {ctx.command.qualified_name}")
-        logger_github.debug(f"Author: {ctx.author}")
-        logger_github.debug(f"Channel: {ctx.channel} ({channel_type})")
-        logger_github.debug(f"Python Version: {sys.version}")
-        logger_github.debug(f"nextcord Version: {nextcord.__version__}")
-        logger_github.debug(f"OS: {platform.system()} {platform.release()}")
-
 
 
 def setup(bot):

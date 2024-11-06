@@ -29,18 +29,18 @@ async def fetch_and_save_cookies(context, user_id):
     await asyncio.sleep(0.5)
 
 async def fetch_and_save_cookies_second_round(context, user_id):
-    logger_error.error(f"2. Round - Command - Opening Browser for user {user_id}")
+    logger_debug.debug(f"2. Round - Command - Opening Browser for user {user_id}")
     page = await context.new_page()
-    logger_error.error(f"2. Round - Command - Opening Pi for user {user_id}")
+    logger_debug.debug(f"2. Round - Command - Opening Pi for user {user_id}")
     await page.goto('https://pi.ai/')
-    logger_error.error(f"2. Round - Command - Waiting 5 seconds for user {user_id}")
+    logger_debug.debug(f"2. Round - Command - Waiting 5 seconds for user {user_id}")
     await asyncio.sleep(5)
-    logger_error.error(f"2. Round - Command - Fetching cookies for user {user_id}")
+    logger_debug.debug(f"2. Round - Command - Fetching cookies for user {user_id}")
     cookies_from_browser = await context.cookies()
-    logger_error.error(f"2. Round - Command - Saving cookies for user {user_id}")
+    logger_debug.debug(f"2. Round - Command - Saving cookies for user {user_id}")
     host_session = next((cookie for cookie in cookies_from_browser if cookie.get('name') == '__Host-session'), {}).get('value')
     await db.save_cookies(host_session, user_id)
-    logger_error.error(f"2. Round - Command - Saved cookies for user {user_id}")
+    logger_debug.debug(f"2. Round - Command - Saved cookies for user {user_id}")
     await asyncio.sleep(0.5)
     return await db.load_cookies(user_id)
 
@@ -59,7 +59,10 @@ class Chat(commands.Cog):
         else:
             pass
 
-        #await interaction.send("Maintenance, please try again later or join the Discord to stay up to date!", ephemeral=True)
+        
+        #! Wäre nice so einen "Maintenance" Modus zu haben, den ich einfach in der .env datei oder in main.py aktivieren kann
+        #! und dann wird nur noch der folgende Text gesendet, wenn man versucht /chat zu benutzen
+        # await interaction.send("Maintenance, please try again later or **join the Discord** (</discord:1131843277033836595>) to stay up to date!", ephemeral=True)
 
         logger_debug.debug(f"Processing chat command for user: {interaction.user.id}")
         url = 'https://pi.ai/api/chat'
@@ -136,9 +139,9 @@ class Chat(commands.Cog):
                 async with AsyncSession() as s:
                     response = await s.post(url, headers=init_headers, data=payload,impersonate="chrome110",timeout=500)
                         # logger_info.info(f"Posted data for user: {user_id}")
-                    if response.status_code in (403, 401):
+                    if response.status_code in (403, 401, 400):
                         # Log that a 401 error was caught
-                        logger_debug.debug(f"403 error caught. Refreshing cookie for user {user_id}")
+                        logger_debug.debug(f"{response.status_code} error caught. Refreshing cookie for user {user_id}")
 
                         # Delete the old cookie
                         await db.delete_cookies(user_id)
@@ -229,7 +232,7 @@ class Chat(commands.Cog):
 
             except Exception as g:
                 logger_error.error(f"Exception of type {type(g).__name__} occurred: {g}")
-                await interaction.followup.send(f'Welp, looks like the bot doesn\'t want to. Report this to the dev please: (Skinwalker)\nPlease join the following Discord Server and submit the error message as a bug report:\nhttps://discord.gg/CUc9PAgUYB\n\n```Error: ' + str(g) + "```")
+                #await interaction.followup.send(f'Welp, looks like the bot doesn\'t want to. Report this to the dev please: (Skinwalker)\nPlease join the following Discord Server and submit the error message as a bug report:\nhttps://discord.gg/CUc9PAgUYB\n\n```Error: ' + str(g) + "```")
                 raise g
 
             finally:
