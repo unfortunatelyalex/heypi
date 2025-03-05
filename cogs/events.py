@@ -232,7 +232,76 @@ class Events(commands.Cog):
     
                         try:
                             logger_info.info(f"\n------------------------------- MESSAGE COMMAND -------------------------------\nUser {message.author.id} / {message.author.name}: {message.content}\nPi: {accumulated_text}\n------------------------------- MESSAGE COMMAND -------------------------------")
-    
+                        
+                            # Check if we have an empty response
+                            if not accumulated_text.strip():
+                                logger_error.error(f"Empty response received for user {message.author.id}. Refreshing cookie and retrying automatically...")
+                                
+                                # Delete the cookie and fetch a new one
+                                await db.delete_cookies(user_id)
+                                new_cookie = await fetch_and_save_cookies_second_round(context, user_id)
+                                logger_debug.debug(f"New cookie after refresh: {new_cookie}")
+                                
+                                # Let the user know we're working on it
+                                temp_msg = await message.reply("Let me think about that for a moment...")
+                                
+                                # Build new headers with the refreshed cookie
+                                new_cookie_value = new_cookie['__Host-session']
+                                retry_headers = {
+                                    'User-Agent': random.choice(user_agents),
+                                    'Accept-Language': 'en-US,en;q=0.7',
+                                    'Referer': 'https://pi.ai/api/chat',
+                                    'Content-Type': 'application/json',
+                                    'Sec-Fetch-Dest': 'empty',
+                                    'Sec-Fetch-Mode': 'cors',
+                                    'Sec-Fetch-Site': 'same-origin',
+                                    'Connection': 'keep-alive',
+                                    'Cookie': f'__Host-session={new_cookie_value}'
+                                }
+                                
+                                # Retry the request with the same content
+                                retry_payload = json.dumps({"text": message.content})
+                                logger_debug.debug(f"Automatically retrying request with new cookie for user {message.author.id}")
+                                
+                                try:
+                                    async with AsyncSession() as retry_session:
+                                        retry_response = await retry_session.post(url, headers=retry_headers, data=retry_payload, 
+                                                                              impersonate="chrome110", timeout=500)
+                                        logger_debug.debug(f"Retry response status code: {retry_response.status_code}")
+                                        
+                                        if retry_response.status_code == 200:
+                                            retry_text = process_dm_response(retry_response)
+                                            
+                                            logger_info.info(f"Retry response for user {message.author.id}: {retry_text}")
+                                            
+                                            if retry_text.strip():
+                                                # We have a valid response on retry, edit our temp message
+                                                if len(retry_text) > 2000:
+                                                    parts = []
+                                                    remaining = retry_text
+                                                    while len(remaining) > 2000:
+                                                        split_index = remaining[:2000].rfind(' ')
+                                                        if split_index == -1:
+                                                            split_index = 2000
+                                                        parts.append(remaining[:split_index])
+                                                        remaining = remaining[split_index:].strip()
+                                                    if remaining:
+                                                        parts.append(remaining)
+                                                    
+                                                    await temp_msg.edit(content=parts[0])
+                                                    for part in parts[1:]:
+                                                        await message.author.send(part)
+                                                else:
+                                                    await temp_msg.edit(content=retry_text)
+                                                return
+                                except Exception as retry_error:
+                                    logger_error.error(f"Error during automatic retry for DM: {retry_error}")
+                                
+                                # If we get here, retry failed
+                                await temp_msg.edit(content="I'm having trouble responding right now. Please try again in a moment.")
+                                return
+                            
+                            # Original response handling for non-empty responses
                             if len(accumulated_text) > 2000:
                                 parts = []
                                 while len(accumulated_text) > 2000:
@@ -250,7 +319,13 @@ class Events(commands.Cog):
                                 await message.author.send(accumulated_text)
                         except Exception as f:
                             logger_error.error(f"Exception of type {type(f).__name__} occurred: {f}")
-                            await message.author.send(f'Looks like an error occurred. Report this to the dev please: (The juice)\nPlease join the following Discord Server and submit the error message as a bug report:\nhttps://discord.gg/CUc9PAgUYB\n\n```Error: ' + str(f) + "```")
+                            # If we get an empty message error, handle it specifically
+                            if isinstance(f, nextcord.errors.HTTPException) and "Cannot send an empty message" in str(f):
+                                logger_error.error(f"Empty message error caught for user {message.author.id}. Refreshing cookie...")
+                                await db.delete_cookies(user_id)
+                                await message.reply("I encountered an issue with my response. Please try again in a moment.")
+                            else:
+                                await message.author.send(f'Looks like an error occurred. Report this to the dev please: (The juice)\nPlease join the following Discord Server and submit the error message as a bug report:\nhttps://discord.gg/CUc9PAgUYB\n\n```Error: ' + str(f) + "```")
     
                 except Exception as g:
                     logger_error.error(f"Exception of type {type(g).__name__} occurred: {g}")
@@ -373,6 +448,75 @@ class Events(commands.Cog):
                             # Log the entire accumulated_text before processing
                             logger_info.info(f"\n------------------------------- MESSAGE COMMAND -------------------------------\nUser {message.author.id} / {message.author.name}: {message.content}\nPi: {accumulated_text}\n------------------------------- MESSAGE COMMAND -------------------------------")
                         
+                            # Check for empty response in channel replies
+                            if not accumulated_text.strip():
+                                logger_error.error(f"Empty response received for user {message.author.id} in channel reply. Refreshing cookie and retrying...")
+                                
+                                # Delete the cookie and fetch a new one
+                                await db.delete_cookies(user_id)
+                                new_cookie = await fetch_and_save_cookies_second_round(context, user_id)
+                                logger_debug.debug(f"New cookie after refresh: {new_cookie}")
+                                
+                                # Let the user know we're working on it
+                                temp_msg = await message.reply("Let me think about that for a moment...")
+                                
+                                # Build new headers with the refreshed cookie
+                                new_cookie_value = new_cookie['__Host-session']
+                                retry_headers = {
+                                    'User-Agent': random.choice(user_agents),
+                                    'Accept-Language': 'en-US,en;q=0.7',
+                                    'Referer': 'https://pi.ai/api/chat',
+                                    'Content-Type': 'application/json',
+                                    'Sec-Fetch-Dest': 'empty',
+                                    'Sec-Fetch-Mode': 'cors',
+                                    'Sec-Fetch-Site': 'same-origin',
+                                    'Connection': 'keep-alive',
+                                    'Cookie': f'__Host-session={new_cookie_value}'
+                                }
+                                
+                                # Retry the request with the same content
+                                retry_payload = json.dumps({"text": message.content})
+                                logger_debug.debug(f"Automatically retrying request with new cookie for user {message.author.id} in channel")
+                                
+                                try:
+                                    async with AsyncSession() as retry_session:
+                                        retry_response = await retry_session.post(url, headers=retry_headers, data=retry_payload, 
+                                                                              impersonate="chrome110", timeout=500)
+                                        logger_debug.debug(f"Retry response status code: {retry_response.status_code}")
+                                        
+                                        if retry_response.status_code == 200:
+                                            retry_text = process_channel_response(retry_response)
+                                            
+                                            logger_info.info(f"Retry response for user {message.author.id} in channel: {retry_text}")
+                                            
+                                            if retry_text.strip():
+                                                # We have a valid response on retry, edit our temp message
+                                                if len(retry_text) > 2000:
+                                                    parts = []
+                                                    remaining = retry_text
+                                                    while len(remaining) > 2000:
+                                                        split_index = remaining[:2000].rfind(' ')
+                                                        if split_index == -1:
+                                                            split_index = 2000
+                                                        parts.append(remaining[:split_index])
+                                                        remaining = remaining[split_index:].strip()
+                                                    if remaining:
+                                                        parts.append(remaining)
+                                                    
+                                                    await temp_msg.edit(content=parts[0])
+                                                    for part in parts[1:]:
+                                                        await message.reply(part)
+                                                else:
+                                                    await temp_msg.edit(content=retry_text)
+                                                return
+                                except Exception as retry_error:
+                                    logger_error.error(f"Error during automatic retry for channel reply: {retry_error}")
+                                
+                                # If we get here, retry failed
+                                await temp_msg.edit(content="I'm having trouble responding right now. Please try again in a moment.")
+                                return
+                            
+                            # Original response handling for non-empty responses
                             if len(accumulated_text) > 2000:
                                 parts = []
                                 while len(accumulated_text) > 2000:
@@ -391,7 +535,13 @@ class Events(commands.Cog):
                                 await message.reply(accumulated_text)
                         except Exception as f:
                             logger_error.error(f"Exception of type {type(f).__name__} occurred: {f}")
-                            await message.reply(f'Looks like an error occurred. Report this to the dev please: (Introvert)\nPlease join the following Discord Server and submit the error message as a bug report:\nhttps://discord.gg/CUc9PAgUYB\n\n```Error: ' + str(f) + "```")
+                            # Specifically handle empty message errors
+                            if isinstance(f, nextcord.errors.HTTPException) and "Cannot send an empty message" in str(f):
+                                logger_error.error(f"Empty message error caught for user {message.author.id}. Refreshing cookie...")
+                                await db.delete_cookies(user_id)
+                                await message.reply("I encountered an issue with my response. Please try again in a moment.")
+                            else:
+                                await message.reply(f'Looks like an error occurred. Report this to the dev please: (Introvert)\nPlease join the following Discord Server and submit the error message as a bug report:\nhttps://discord.gg/CUc9PAgUYB\n\n```Error: ' + str(f) + "```")
                             raise f
                     except Exception as e:
                         logger_error.error(f"Exception of type {type(e).__name__} occurred: {e}")
@@ -406,6 +556,30 @@ class Events(commands.Cog):
             
         await self.bot.process_commands(message)
 
+
+
+def process_dm_response(response):
+    return process_response_data(response.content.decode("utf-8"))
+
+def process_channel_response(response):
+    return process_response_data(response.content.decode("utf-8"))
+
+def process_response_data(decoded_data):
+    decoded_data = re.sub('\n+', '\n', decoded_data).strip()
+    data_strings = decoded_data.split('\n')
+    accumulated_text = ""
+    
+    for data_string in data_strings:
+        if data_string.startswith('data:'):
+            json_str = data_string[5:].strip()
+            try:
+                data = json.loads(json_str)
+                if 'text' in data:
+                    accumulated_text += data['text']
+            except Exception:
+                pass
+    
+    return accumulated_text
 
 
 def setup(bot):

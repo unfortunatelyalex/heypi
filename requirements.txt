@@ -1,0 +1,9 @@
+aiohttp
+aiosqlite
+curl_cffi
+nextcord
+playwright
+python-dotenv
+pytz
+requests
+pygithub
