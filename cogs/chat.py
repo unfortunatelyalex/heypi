@@ -137,7 +137,7 @@ class Chat(commands.Cog):
                 }
 
                 async with AsyncSession() as s:
-                    response = await s.post(url, headers=init_headers, data=payload,impersonate="chrome110",timeout=500)
+                    response = await s.post(url, headers=init_headers, data=payload,impersonate="chrome136",timeout=500)
                         # logger_info.info(f"Posted data for user: {user_id}")
                     if response.status_code in (403, 401, 400):
                         # Log that a 401 error was caught
@@ -166,7 +166,7 @@ class Chat(commands.Cog):
 
                         logger_debug.debug(f"Sending request with the headers: {error_headers}")
                         # Resend the request with the updated headers
-                        response = await s.post(url, headers=error_headers, data=payload, impersonate="chrome110", timeout=500)
+                        response = await s.post(url, headers=error_headers, data=payload, impersonate="chrome136", timeout=500)
                         logger_debug.debug(f"Resent request with new cookie. Status Code: {response.status_code}")
                     elif response.status_code != 200:
                         #logger_error.error(f"Statuscode: {response.status_code} - {response.reason}")
@@ -235,7 +235,7 @@ class Chat(commands.Cog):
                                 # Let the user know we're working on it
                                 await interaction.send("Let me think about that for a moment...")
                                 
-                                retry_response = await retry_session.post(url, headers=retry_headers, data=payload, impersonate="chrome110", timeout=500)
+                                retry_response = await retry_session.post(url, headers=retry_headers, data=payload, impersonate="chrome136", timeout=500)
                                 logger_debug.debug(f"Retry response status code: {retry_response.status_code}")
                                 
                                 if retry_response.status_code == 200:
@@ -332,7 +332,7 @@ class Chat(commands.Cog):
                             
                             # Try again
                             async with AsyncSession() as retry_s:
-                                retry_response = await retry_s.post(url, headers=retry_headers, data=payload, impersonate="chrome110", timeout=500)
+                                retry_response = await retry_s.post(url, headers=retry_headers, data=payload, impersonate="chrome136", timeout=500)
                                 if retry_response.status_code == 200:
                                     # Process response and send it
                                     retry_text = process_response(retry_response)

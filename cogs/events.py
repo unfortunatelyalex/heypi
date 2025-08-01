@@ -181,7 +181,7 @@ class Events(commands.Cog):
                     }
     
                     async with AsyncSession() as s:
-                        response = await s.post(url, headers=init_headers, data=payload, impersonate="chrome110", timeout=500)
+                        response = await s.post(url, headers=init_headers, data=payload, impersonate="chrome136", timeout=500)
                         if response.status_code in (403, 401, 400):
                             logger_debug.debug(f"{response.status_code} caught. Refreshing cookie for user {user_id}")
     
@@ -205,7 +205,7 @@ class Events(commands.Cog):
                             }
     
                             logger_debug.debug(f"Sending request with the headers: {error_headers}")
-                            response = await s.post(url, headers=error_headers, data=payload, impersonate="chrome110", timeout=500)
+                            response = await s.post(url, headers=error_headers, data=payload, impersonate="chrome136", timeout=500)
                             logger_debug.debug(f"Resent request with new cookie. Status Code: {response.status_code}")
     
                         elif response.status_code != 200:
@@ -266,7 +266,7 @@ class Events(commands.Cog):
                                 try:
                                     async with AsyncSession() as retry_session:
                                         retry_response = await retry_session.post(url, headers=retry_headers, data=retry_payload, 
-                                                                              impersonate="chrome110", timeout=500)
+                                                                              impersonate="chrome136", timeout=500)
                                         logger_debug.debug(f"Retry response status code: {retry_response.status_code}")
                                         
                                         if retry_response.status_code == 200:
@@ -394,7 +394,7 @@ class Events(commands.Cog):
                         }
 
                         async with AsyncSession() as s:
-                            response = await s.post(url, headers=init_headers, data=payload, impersonate="chrome110", timeout=500)
+                            response = await s.post(url, headers=init_headers, data=payload, impersonate="chrome136", timeout=500)
                             if response.status_code in (403, 401, 400):
                                 # Log that a 401 error was caught
                                 logger_debug.debug(f"{response.status_code} caught. Refreshing cookie for user {user_id}")
@@ -422,7 +422,7 @@ class Events(commands.Cog):
 
                                 logger_debug.debug(f"Sending request with the headers: {headers}")
                                 # Resend the request with the updated headers
-                                response = await s.post(url, headers=headers, data=payload, impersonate="chrome110", timeout=500)
+                                response = await s.post(url, headers=headers, data=payload, impersonate="chrome136", timeout=500)
                                 logger_debug.debug(f"Resent request with new cookie. Status Code: {response.status_code}")
                                 
                             elif response.status_code != 200:
@@ -481,7 +481,7 @@ class Events(commands.Cog):
                                 try:
                                     async with AsyncSession() as retry_session:
                                         retry_response = await retry_session.post(url, headers=retry_headers, data=retry_payload, 
-                                                                              impersonate="chrome110", timeout=500)
+                                                                              impersonate="chrome136", timeout=500)
                                         logger_debug.debug(f"Retry response status code: {retry_response.status_code}")
                                         
                                         if retry_response.status_code == 200:

@@ -31,7 +31,12 @@ class ApplicationCommandError(commands.Cog):
         cet_time = utc_time.astimezone(pytz.timezone('Europe/Berlin'))
 
         # Determine if the channel is a direct message
-        channel_type = "Direct Message" if isinstance(interaction.channel, nextcord.DMChannel) else "Guild Channel"
+        if isinstance(interaction.channel, nextcord.DMChannel):
+            channel_type = "Direct Message"
+            channel_info = str(interaction.channel)
+        else:
+            channel_type = "Guild Channel"
+            channel_info = f"`{interaction.channel}` (Guild: `{interaction.guild.name}`)"
 
         issue_title = f"Interaction error encountered: {error_message}"
         issue_body = (f"**User Message:** {interaction.data}\n"
@@ -40,7 +45,7 @@ class ApplicationCommandError(commands.Cog):
                       f"**Time:** {cet_time.strftime('%d-%m-%Y  -  %H:%M:%S')}\n"
                       f"**Command:** `{interaction.application_command.name}`\n"
                       f"**Author:** {interaction.user}\n"
-                      f"**Channel:** {interaction.channel} ({channel_type})\n"
+                      f"**Channel:** {channel_info} ({channel_type})\n"
                       f"**Python Version:** `{sys.version}`\n"
                       f"**nextcord Version:** `{nextcord.__version__}`\n"
                       f"**OS:** `{platform.system()} {platform.release()}`")
@@ -86,7 +91,12 @@ class ApplicationCommandError(commands.Cog):
         cet_time = utc_time.astimezone(pytz.timezone('Europe/Berlin'))
 
         # Determine if the channel is a direct message
-        channel_type = "Direct Message" if isinstance(ctx.channel, nextcord.DMChannel) else "Guild Channel"
+        if isinstance(ctx.channel, nextcord.DMChannel):
+            channel_type = "Direct Message"
+            channel_info = str(ctx.channel)
+        else:
+            channel_type = "Guild Channel"
+            channel_info = f"`{ctx.channel}` (Guild: `{ctx.guild.name}`)"
 
         issue_title = f"Event error encountered: {error_message}"
         issue_body = (f"**User Message:** {ctx.message.content}\n"
@@ -95,7 +105,7 @@ class ApplicationCommandError(commands.Cog):
                       f"**Time:** {cet_time.strftime('%d-%m-%Y  -  %H:%M:%S')}\n"
                       f"**Command:** `{ctx.command.qualified_name}`\n"
                       f"**Author:** {ctx.author}\n"
-                      f"**Channel:** {ctx.channel} ({channel_type})\n"
+                      f"**Channel:** {channel_info} ({channel_type})\n"
                       f"**Python Version:** `{sys.version}`\n"
                       f"**nextcord Version:** `{nextcord.__version__}`\n"
                       f"**OS:** `{platform.system()} {platform.release()}`")

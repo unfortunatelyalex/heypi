@@ -6,6 +6,7 @@ CLI/
 .python-version
 .stignore
 .stfolder/
+*.sh
 
 ### Python ###
 # Byte-compiled / optimized / DLL files

@@ -307,6 +307,7 @@ class Admin(commands.Cog):
             # try an impossible division
             1 / 0
         except Exception as e:
+            await i.send(f"Division by 0. xd", ephemeral=True)
             raise e
 
 
