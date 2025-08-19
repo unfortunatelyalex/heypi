@@ -164,7 +164,7 @@ class Events(commands.Cog):
                     payload = json.dumps({"text": message.content})
     
                     cookie_dict = await db.load_cookies(message.author.id)
-                    cookie = cookie_dict.get("__Host-session", None)
+                    cookie = cookie_dict.get("__Host-session", None) if cookie_dict else None
     
                     url = "https://pi.ai/api/chat"
     
@@ -379,7 +379,7 @@ class Events(commands.Cog):
                         payload = json.dumps({"text": message.content})
 
                         cookie_dict = await db.load_cookies(message.author.id)
-                        cookie = cookie_dict.get("__Host-session", None)
+                        cookie = cookie_dict.get("__Host-session", None) if cookie_dict else None
 
                         init_headers = {
                             'User-Agent': random.choice(user_agents),
