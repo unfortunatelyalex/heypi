@@ -111,7 +111,7 @@ class Chat(commands.Cog):
                 
                 cookie_dict = await db.load_cookies(interaction.user.id)
                 #logger_info.info("Cookie dict: ", cookie_dict)
-                cookie = cookie_dict.get('__Host-session', None)
+                cookie = cookie_dict.get('__Host-session', None) if cookie_dict else None
                 #logger_info.info(f"final cookie: {cookie}")
                 
                 #pi = Pi(cookie=cookie, proxy=use_proxy)
@@ -120,7 +120,7 @@ class Chat(commands.Cog):
                 payload = json.dumps({"text": text})
 
                 cookie_dict = await db.load_cookies(interaction.user.id)
-                cookie = cookie_dict.get('__Host-session', None)
+                cookie = cookie_dict.get('__Host-session', None) if cookie_dict else None
 
                 url = "https://pi.ai/api/chat"
 
