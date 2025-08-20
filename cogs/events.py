@@ -5,6 +5,7 @@ import random
 import asyncio
 import nextcord
 from datetime import datetime
+from typing import Any, cast
 from util.ua import user_agents
 from nextcord.ext import commands
 from nextcord.ext.commands import Cog
@@ -13,18 +14,23 @@ from playwright.async_api import async_playwright
 from main import add_user_to_database, bot, check_user_in_database, db, logger_debug, logger_error, logger_info, is_user_banned, why_is_user_banned, save_channel_id, get_channel_id, delete_channel_id, update_channel_id
 
 
-channel = bot.get_channel(1129005486973407272)
-germany_timezone = pytz.timezone('Europe/Berlin')
-germany_time = datetime.now(germany_timezone).strftime('%d-%m-%Y %H:%M:%S')
+def get_alert_channel():
+    return bot.get_channel(1129005486973407272)
+
+def germany_timestamp() -> str:
+    germany_timezone = pytz.timezone('Europe/Berlin')
+    return datetime.now(germany_timezone).strftime('%d-%m-%Y %H:%M:%S')
 
 
 async def fetch_and_save_cookies(context, user_id):
     logger_debug.debug(f"1. Round - Event - Opening Browser for user {user_id}")
     page = await context.new_page()
     logger_debug.debug(f"1. Round - Event - Opening Pi for user {user_id}")
-    await page.goto('https://pi.ai/')
-    logger_debug.debug(f"Event - Waiting 5 seconds for user {user_id}")
-    await asyncio.sleep(5)
+    await page.goto('https://pi.ai/', wait_until='domcontentloaded')
+    try:
+        await page.wait_for_load_state('networkidle', timeout=5000)
+    except Exception:
+        pass
     logger_debug.debug(f"1. Round - Event - Fetching cookies for user {user_id}")
     cookies_from_browser = await context.cookies()
     logger_debug.debug(f"1. Round - Event - Saving cookies for user {user_id}")
@@ -34,15 +40,17 @@ async def fetch_and_save_cookies(context, user_id):
         logger_debug.debug(f"1. Round - Event - Saved cookies for user {user_id}")
     else:
         logger_error.error(f"Could not find __Host-session cookie for user {user_id} (round 1). Not saving to DB.")
-    await asyncio.sleep(0.5)
+    await asyncio.sleep(0.2)
 
 async def fetch_and_save_cookies_second_round(context, user_id):
     logger_error.error(f"2. Round - Event - Opening Browser for user {user_id}")
     page = await context.new_page()
     logger_error.error(f"2. Round - Event - Opening Pi for user {user_id}")
-    await page.goto('https://pi.ai/')
-    logger_error.error(f"2. Round - Event - Waiting 5 seconds for user {user_id}")
-    await asyncio.sleep(5)
+    await page.goto('https://pi.ai/', wait_until='domcontentloaded')
+    try:
+        await page.wait_for_load_state('networkidle', timeout=5000)
+    except Exception:
+        pass
     logger_error.error(f"2. Round - Event - Fetching cookies for user {user_id}")
     cookies_from_browser = await context.cookies()
     logger_error.error(f"2. Round - Event - Saving cookies for user {user_id}")
@@ -52,7 +60,7 @@ async def fetch_and_save_cookies_second_round(context, user_id):
         logger_error.error(f"2. Round - Event - Saved cookies for user {user_id}")
     else:
         logger_error.error(f"Could not find __Host-session cookie for user {user_id} (round 2). Not saving to DB.")
-    await asyncio.sleep(0.5)
+    await asyncio.sleep(0.2)
     return await db.load_cookies(user_id)
 
 
@@ -63,8 +71,13 @@ class Events(commands.Cog):
 
     @nextcord.slash_command(name="setup", description="Setup a message channel")
     async def setup_channel(self, i: nextcord.Interaction, channel: nextcord.TextChannel = nextcord.SlashOption(description="The channel to setup")):
-        # Check if the user is an admin
-        if i.user.guild_permissions.administrator:
+        # Must be used in a guild
+        if not i.guild:
+            await i.response.send_message("This command can only be used in a server.", ephemeral=True)
+            return
+        # Check if invoked by an admin
+        member = i.user if i.guild else None
+        if i.guild and isinstance(member, nextcord.Member) and member.guild_permissions.administrator:
             guild_id = str(i.guild_id)  # Convert guild ID to string if your database expects a string
             # Check if there's already a channel id defined for the guild
             existing_channel_id = await get_channel_id(guild_id)
@@ -85,7 +98,8 @@ class Events(commands.Cog):
             await i.response.send_message("This command can only be used in a server.", ephemeral=True)
             return
         # Check if the user is an admin
-        if i.user.guild_permissions.administrator:
+        member = i.user if i.guild else None
+        if i.guild and isinstance(member, nextcord.Member) and member.guild_permissions.administrator:
             guild_id = str(i.guild_id)
             # Check if there's already a channel id defined for the guild
             existing_channel_id = await get_channel_id(guild_id)
@@ -133,7 +147,7 @@ class Events(commands.Cog):
     
             logger_debug.debug(f"Processing message command for user: {message.author.id}")
             url = 'https://pi.ai/api/chat'
-    
+
             user_id = str(message.author.id)
             cookies = await db.load_cookies(user_id)
     
@@ -153,8 +167,8 @@ class Events(commands.Cog):
     
             async with async_playwright() as p:
                 browser = await p.chromium.launch(headless=True)
-                context = await browser.new_context(user_agent=random.choice(user_agents),
-                                                    java_script_enabled=True)
+                ua = random.choice(user_agents)
+                context = await browser.new_context(user_agent=ua, java_script_enabled=True)
     
                 try:
                     cookies = await db.load_cookies(user_id)
@@ -215,10 +229,14 @@ class Events(commands.Cog):
                             logger_debug.debug(f"Resent request with new cookie. Status Code: {response.status_code}")
     
                         elif response.status_code != 200:
-                            if channel:
-                                await channel.send(f"<@399668151475765258>\n> From: <@{message.author.id}>\n> Statuscode: {response.status_code} - `{response.content}`\n> Timestamp: {germany_time}")
+                            ch = get_alert_channel()
+                            if ch is not None:
+                                try:
+                                    await cast(Any, ch).send(f"<@399668151475765258>\n> From: <@{message.author.id}>\n> Statuscode: {response.status_code} - `{response.content}`\n> Timestamp: {germany_timestamp()}")
+                                except Exception:
+                                    pass
     
-                        decoded_data = response.content.decode("utf-8")
+                        decoded_data = response.content.decode("utf-8", errors='ignore')
                         decoded_data = re.sub('\n+', '\n', decoded_data).strip()
                         data_strings = decoded_data.split('\n')
                         accumulated_text = ""
@@ -232,10 +250,10 @@ class Events(commands.Cog):
                                         accumulated_text += data['text']
                                 except json.JSONDecodeError as e:
                                     logger_error.error(f"JSONDecodeError: {e}")
-                                    await message.author.send(f'Looks like an error occurred. Report this to the dev please: (Jason)\nPlease join the following Discord Server and submit the error message as a bug report:\nhttps://discord.gg/CUc9PAgUYB\n\n```Error: ' + str(e) + "```")
+                                    await message.author.send("I'm having trouble understanding the response right now. Please try again in a moment.")
                                 except Exception as e:
                                     logger_error.error(f"Exception of type {type(e).__name__} occurred: {e}")
-                                    await message.author.send(f'Looks like an error occurred. Report this to the dev please: (Beetle)\nPlease join the following Discord Server and submit the error message as a bug report:\nhttps://discord.gg/CUc9PAgUYB\n\n```Error: ' + str(e) + "```")
+                                    await message.author.send("I'm having trouble responding right now. Please try again in a moment.")
     
                         try:
                             logger_info.info(f"\n------------------------------- MESSAGE COMMAND -------------------------------\nUser {message.author.id} / {message.author.name}: {message.content}\nPi: {accumulated_text}\n------------------------------- MESSAGE COMMAND -------------------------------")
@@ -309,21 +327,10 @@ class Events(commands.Cog):
                                 return
                             
                             # Original response handling for non-empty responses
-                            if len(accumulated_text) > 2000:
-                                parts = []
-                                while len(accumulated_text) > 2000:
-                                    split_index = accumulated_text[:2000].rfind(' ')
-                                    if split_index == -1:
-                                        split_index = 2000
-                                    parts.append(accumulated_text[:split_index])
-                                    accumulated_text = accumulated_text[split_index:].strip()
-                                parts.append(accumulated_text)
-    
-                                await message.author.send(parts[0])
-                                for part in parts[1:]:
-                                    await message.author.send(part)
-                            else:
-                                await message.author.send(accumulated_text)
+                            parts = split_message(accumulated_text)
+                            await message.author.send(parts[0])
+                            for part in parts[1:]:
+                                await message.author.send(part)
                         except Exception as f:
                             logger_error.error(f"Exception of type {type(f).__name__} occurred: {f}")
                             # If we get an empty message error, handle it specifically
@@ -336,7 +343,7 @@ class Events(commands.Cog):
     
                 except Exception as g:
                     logger_error.error(f"Exception of type {type(g).__name__} occurred: {g}")
-                    await message.author.send(f'Welp, looks like the bot doesn\'t want to. Report this to the dev please: (Firefly)\nPlease join the following Discord Server and submit the error message as a bug report:\nhttps://discord.gg/CUc9PAgUYB\n\n```Error: ' + str(g) + "```")
+                    await message.author.send("I'm having trouble right now. Please try again in a moment.")
     
                 finally:
                     await context.close()
@@ -347,11 +354,16 @@ class Events(commands.Cog):
 
 
 
+        if not message.guild:
+            await self.bot.process_commands(message)
+            return
         guild_id = str(message.guild.id)  # Convert guild ID to string if necessary
         if await is_user_banned(message.author.id):
             channel_id = await get_channel_id(guild_id)  # Updated to include guild_id
             if channel_id and message.channel.id == int(channel_id):
-                if (message.reference and message.reference.resolved and message.reference.resolved.author == self.bot.user) or self.bot.user in message.mentions:
+                resolved = getattr(getattr(message, 'reference', None), 'resolved', None)
+                resolved_author = getattr(resolved, 'author', None)
+                if (resolved_author == self.bot.user) or self.bot.user in message.mentions:
                     reason = await why_is_user_banned(message.author.id)
                     await message.reply(f"You are banned from using this command. If you want to appeal your ban, try joining the support discord.\n\nReason: {reason}")
                 return
@@ -362,7 +374,9 @@ class Events(commands.Cog):
         channel_id = await get_channel_id(guild_id)  # Updated to include guild_id
         if channel_id and message.channel.id == int(channel_id):
             # Check if the message is a reply to the bot
-            if (message.reference and message.reference.resolved and message.reference.resolved.author == self.bot.user) or self.bot.user in message.mentions:
+            resolved = getattr(getattr(message, 'reference', None), 'resolved', None)
+            resolved_author = getattr(resolved, 'author', None)
+            if (resolved_author == self.bot.user) or self.bot.user in message.mentions:
                 logger_debug.debug(f"Processing API request for user: {message.author.id}")
                 url = 'https://pi.ai/api/chat'
 
@@ -433,11 +447,15 @@ class Events(commands.Cog):
                                 logger_debug.debug(f"Resent request with new cookie. Status Code: {response.status_code}")
                                 
                             elif response.status_code != 200:
-                                if channel:
-                                    await channel.send(f"<@399668151475765258>\n> From: <@{message.author.id}>\n> Statuscode: {response.status_code} - `{response.content}`\n> Timestamp: {germany_time}")
+                                ch = get_alert_channel()
+                                if ch is not None:
+                                    try:
+                                        await cast(Any, ch).send(f"<@399668151475765258>\n> From: <@{message.author.id}>\n> Statuscode: {response.status_code} - `{response.content}`\n> Timestamp: {germany_timestamp()}")
+                                    except Exception:
+                                        pass
 
                             if response.status_code == 200:
-                                decoded_data = response.content.decode("utf-8")
+                                decoded_data = response.content.decode("utf-8", errors='ignore')
                                 decoded_data = re.sub('\n+', '\n', decoded_data).strip()
                                 data_strings = decoded_data.split('\n')
                                 accumulated_text = ""
@@ -535,12 +553,10 @@ class Events(commands.Cog):
                                     accumulated_text = accumulated_text[split_index:].strip()
                                 parts.append(accumulated_text)  # Add the remaining part
                         
-                                # Send each part
+                                parts = split_message(accumulated_text)
                                 await message.reply(parts[0])
                                 for part in parts[1:]:
                                     await message.reply(part)
-                            else:
-                                await message.reply(accumulated_text)
                         except Exception as f:
                             logger_error.error(f"Exception of type {type(f).__name__} occurred: {f}")
                             # Specifically handle empty message errors
@@ -553,7 +569,7 @@ class Events(commands.Cog):
                             raise f
                     except Exception as e:
                         logger_error.error(f"Exception of type {type(e).__name__} occurred: {e}")
-                        await message.reply(f'Looks like an error occurred. Report this to the dev please: (MC Slot)\nPlease join the following Discord Server and submit the error message as a bug report:\nhttps://discord.gg/CUc9PAgUYB\n\n```Error: ' + str(e) + "```")
+                        await message.reply("I'm having trouble right now. Please try again in a moment.")
                     finally:
                         await context.close()
                         await browser.close()
@@ -567,10 +583,10 @@ class Events(commands.Cog):
 
 
 def process_dm_response(response):
-    return process_response_data(response.content.decode("utf-8"))
+    return process_response_data(response.content.decode("utf-8", errors='ignore'))
 
 def process_channel_response(response):
-    return process_response_data(response.content.decode("utf-8"))
+    return process_response_data(response.content.decode("utf-8", errors='ignore'))
 
 def process_response_data(decoded_data):
     decoded_data = re.sub('\n+', '\n', decoded_data).strip()
@@ -588,6 +604,27 @@ def process_response_data(decoded_data):
                 pass
     
     return accumulated_text
+
+
+MAX_DISCORD_MESSAGE_LEN = 2000
+
+def split_message(text: str) -> list[str]:
+    if not text:
+        return ["(empty response)"]
+    if len(text) <= MAX_DISCORD_MESSAGE_LEN:
+        return [text]
+    parts: list[str] = []
+    remaining = text
+    while len(remaining) > MAX_DISCORD_MESSAGE_LEN:
+        window = remaining[:MAX_DISCORD_MESSAGE_LEN]
+        split_index = window.rfind(' ')
+        if split_index == -1:
+            split_index = MAX_DISCORD_MESSAGE_LEN
+        parts.append(remaining[:split_index])
+        remaining = remaining[split_index:].strip()
+    if remaining:
+        parts.append(remaining)
+    return parts
 
 
 def setup(bot):
