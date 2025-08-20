@@ -29,8 +29,11 @@ async def fetch_and_save_cookies(context, user_id):
     cookies_from_browser = await context.cookies()
     logger_debug.debug(f"1. Round - Event - Saving cookies for user {user_id}")
     host_session = next((cookie for cookie in cookies_from_browser if cookie.get('name') == '__Host-session'), {}).get('value')
-    await db.save_cookies(host_session, user_id)
-    logger_debug.debug(f"1. Round - Event - Saved cookies for user {user_id}")
+    if host_session:
+        await db.save_cookies(host_session, user_id)
+        logger_debug.debug(f"1. Round - Event - Saved cookies for user {user_id}")
+    else:
+        logger_error.error(f"Could not find __Host-session cookie for user {user_id} (round 1). Not saving to DB.")
     await asyncio.sleep(0.5)
 
 async def fetch_and_save_cookies_second_round(context, user_id):
@@ -44,8 +47,11 @@ async def fetch_and_save_cookies_second_round(context, user_id):
     cookies_from_browser = await context.cookies()
     logger_error.error(f"2. Round - Event - Saving cookies for user {user_id}")
     host_session = next((cookie for cookie in cookies_from_browser if cookie.get('name') == '__Host-session'), {}).get('value')
-    await db.save_cookies(host_session, user_id)
-    logger_error.error(f"2. Round - Event - Saved cookies for user {user_id}")
+    if host_session:
+        await db.save_cookies(host_session, user_id)
+        logger_error.error(f"2. Round - Event - Saved cookies for user {user_id}")
+    else:
+        logger_error.error(f"Could not find __Host-session cookie for user {user_id} (round 2). Not saving to DB.")
     await asyncio.sleep(0.5)
     return await db.load_cookies(user_id)
 
@@ -163,7 +169,7 @@ class Events(commands.Cog):
     
                     payload = json.dumps({"text": message.content})
     
-                    cookie_dict = await db.load_cookies(message.author.id)
+                    cookie_dict = await db.load_cookies(user_id)
                     cookie = cookie_dict.get("__Host-session", None) if cookie_dict else None
     
                     url = "https://pi.ai/api/chat"
@@ -177,7 +183,7 @@ class Events(commands.Cog):
                         'Sec-Fetch-Mode': 'cors',
                         'Sec-Fetch-Site': 'same-origin',
                         'Connection': 'keep-alive',
-                        'Cookie': f'__Host-session={cookie}'
+                        'Cookie': f'__Host-session={cookie}' if cookie else ''
                     }
     
                     async with AsyncSession() as s:
@@ -190,7 +196,7 @@ class Events(commands.Cog):
     
                             new_cookie = await fetch_and_save_cookies_second_round(context, user_id)
                             logger_debug.debug(f"Fetched and saved new cookie for user {user_id}: {new_cookie}")
-                            new_cookie_value = new_cookie['__Host-session']
+                            new_cookie_value = new_cookie.get('__Host-session') if new_cookie else None
     
                             error_headers = {
                                 'User-Agent': init_headers['User-Agent'],
@@ -209,7 +215,8 @@ class Events(commands.Cog):
                             logger_debug.debug(f"Resent request with new cookie. Status Code: {response.status_code}")
     
                         elif response.status_code != 200:
-                            await channel.send(f"<@399668151475765258>\n> From: <@{message.author.id}>\n> Statuscode: {response.status_code} - `{response.content}`\n> Timestamp: {germany_time}")
+                            if channel:
+                                await channel.send(f"<@399668151475765258>\n> From: <@{message.author.id}>\n> Statuscode: {response.status_code} - `{response.content}`\n> Timestamp: {germany_time}")
     
                         decoded_data = response.content.decode("utf-8")
                         decoded_data = re.sub('\n+', '\n', decoded_data).strip()
@@ -246,7 +253,7 @@ class Events(commands.Cog):
                                 temp_msg = await message.reply("Let me think about that for a moment...")
                                 
                                 # Build new headers with the refreshed cookie
-                                new_cookie_value = new_cookie['__Host-session']
+                                new_cookie_value = new_cookie.get('__Host-session') if new_cookie else None
                                 retry_headers = {
                                     'User-Agent': random.choice(user_agents),
                                     'Accept-Language': 'en-US,en;q=0.7',
@@ -256,7 +263,7 @@ class Events(commands.Cog):
                                     'Sec-Fetch-Mode': 'cors',
                                     'Sec-Fetch-Site': 'same-origin',
                                     'Connection': 'keep-alive',
-                                    'Cookie': f'__Host-session={new_cookie_value}'
+                                    'Cookie': f'__Host-session={new_cookie_value}' if new_cookie_value else ''
                                 }
                                 
                                 # Retry the request with the same content
@@ -378,7 +385,7 @@ class Events(commands.Cog):
 
                         payload = json.dumps({"text": message.content})
 
-                        cookie_dict = await db.load_cookies(message.author.id)
+                        cookie_dict = await db.load_cookies(user_id)
                         cookie = cookie_dict.get("__Host-session", None) if cookie_dict else None
 
                         init_headers = {
@@ -390,7 +397,7 @@ class Events(commands.Cog):
                             'Sec-Fetch-Mode': 'cors',
                             'Sec-Fetch-Site': 'same-origin',
                             'Connection': 'keep-alive',
-                            'Cookie': f'__Host-session={cookie}'
+                            'Cookie': f'__Host-session={cookie}' if cookie else ''
                         }
 
                         async with AsyncSession() as s:
@@ -406,7 +413,7 @@ class Events(commands.Cog):
                                 # Fetch and save the new cookie
                                 new_cookie = await fetch_and_save_cookies_second_round(context, user_id)
                                 logger_debug.debug(f"Fetched and saved new cookie for user {user_id}: {new_cookie}")
-                                new_cookie_value = new_cookie['__Host-session']
+                                new_cookie_value = new_cookie.get('__Host-session') if new_cookie else None
 
                                 headers = {
                                     'User-Agent': init_headers['User-Agent'],
@@ -426,7 +433,8 @@ class Events(commands.Cog):
                                 logger_debug.debug(f"Resent request with new cookie. Status Code: {response.status_code}")
                                 
                             elif response.status_code != 200:
-                                await channel.send(f"<@399668151475765258>\n> From: <@{message.author.id}>\n> Statuscode: {response.status_code} - `{response.content}`\n> Timestamp: {germany_time}")
+                                if channel:
+                                    await channel.send(f"<@399668151475765258>\n> From: <@{message.author.id}>\n> Statuscode: {response.status_code} - `{response.content}`\n> Timestamp: {germany_time}")
 
                             if response.status_code == 200:
                                 decoded_data = response.content.decode("utf-8")
@@ -461,7 +469,7 @@ class Events(commands.Cog):
                                 temp_msg = await message.reply("Let me think about that for a moment...")
                                 
                                 # Build new headers with the refreshed cookie
-                                new_cookie_value = new_cookie['__Host-session']
+                                new_cookie_value = new_cookie.get('__Host-session') if new_cookie else None
                                 retry_headers = {
                                     'User-Agent': random.choice(user_agents),
                                     'Accept-Language': 'en-US,en;q=0.7',
@@ -471,7 +479,7 @@ class Events(commands.Cog):
                                     'Sec-Fetch-Mode': 'cors',
                                     'Sec-Fetch-Site': 'same-origin',
                                     'Connection': 'keep-alive',
-                                    'Cookie': f'__Host-session={new_cookie_value}'
+                                    'Cookie': f'__Host-session={new_cookie_value}' if new_cookie_value else ''
                                 }
                                 
                                 # Retry the request with the same content
